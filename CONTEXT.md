@@ -9,7 +9,7 @@ One training session, started empty and built up by adding Exercises as you go.
 _Avoid_: Session, routine, template
 
 **Exercise**:
-A named strength movement the user has defined, e.g. "Barbell Bench Press".
+A named strength movement on specific equipment, e.g. "Barbell Bench Press" or "Chest Press (Hoist)". Loads are comparable across all its Sets, so the same movement on machines that load differently is separate Exercises.
 _Avoid_: Movement, lift
 
 **Exercise Library**:
@@ -37,5 +37,13 @@ The user's estimate of how many more reps they could have done on a Completed Se
 _Avoid_: RPE, effort, intensity
 
 **Muscle Group**:
-A body area an Exercise trains, e.g. "Chest". The unit the user sets priorities for.
+A body area an Exercise trains, e.g. "Upper Chest". The unit the user sets priorities for. Drawn from a fixed list; the user cannot add or rename them.
 _Avoid_: Body part, muscle
+
+**Muscle Emphasis**:
+How much an Exercise trains one Muscle Group, as a relative weight from 0 to 1, e.g. Bench Press has a Triceps emphasis of 0.5. An Exercise has one or more.
+_Avoid_: Muscle load, involvement, contribution, primary/secondary
+
+**Load Type**:
+How an Exercise's weight is read: Loaded (external weight), Bodyweight (optional added weight) or Assisted (weight is assistance, so higher is easier).
+_Avoid_: Weight type, mode
