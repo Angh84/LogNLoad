@@ -8,6 +8,10 @@ A personal iPhone app for logging strength training.
 One training session, started empty and built up by adding Exercises as you go.
 _Avoid_: Session, routine, template
 
+**Active Workout**:
+A Workout that has been started but not yet finished or discarded. There is at most one at a time.
+_Avoid_: Current workout, open workout, in-progress workout
+
 **Exercise**:
 A named strength movement on specific equipment, e.g. "Barbell Bench Press" or "Chest Press (Hoist)". Loads are comparable across all its Sets, so the same movement on machines that load differently is separate Exercises.
 _Avoid_: Movement, lift
@@ -33,7 +37,7 @@ A Set the user marks as preparation rather than training. Kept like any Complete
 _Avoid_: Ramp-up set, prep set
 
 **Last Performance**:
-The Completed Sets of an Exercise from the most recent Workout that contains it.
+The Completed Sets of an Exercise from the most recent finished Workout that contains it.
 _Avoid_: Previous, last time
 
 **Prefill**:
