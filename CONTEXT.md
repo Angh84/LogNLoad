@@ -16,6 +16,10 @@ _Avoid_: Movement, lift
 The user's own collection of Exercises, seeded with a starter list.
 _Avoid_: Catalog, exercise database
 
+**Exercise Entry**:
+One Exercise's place in one Workout, holding its Sets in order and an optional note. A Workout has at most one Exercise Entry per Exercise.
+_Avoid_: Workout exercise, slot, block
+
 **Set**:
 One bout of an Exercise within a Workout, recorded as reps and weight. A Set is a target until the user completes it.
 _Avoid_: Round
@@ -23,6 +27,10 @@ _Avoid_: Round
 **Completed Set**:
 A Set the user has confirmed as performed. Only Completed Sets are kept when a Workout finishes.
 _Avoid_: Done set, logged set
+
+**Warm-up Set**:
+A Set the user marks as preparation rather than training. Kept like any Completed Set, but not counted as training volume.
+_Avoid_: Ramp-up set, prep set
 
 **Last Performance**:
 The Completed Sets of an Exercise from the most recent Workout that contains it.
