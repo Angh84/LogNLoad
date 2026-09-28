@@ -20,6 +20,10 @@ _Avoid_: Movement, lift
 The user's own collection of Exercises, seeded with a starter list.
 _Avoid_: Catalog, exercise database
 
+**Archived Exercise**:
+An Exercise removed from the Exercise Library for new Workouts but kept because Workouts already contain it. It can be restored.
+_Avoid_: Deleted exercise, hidden exercise, retired exercise
+
 **Exercise Entry**:
 One Exercise's place in one Workout, holding its Sets in order and an optional note. A Workout has at most one Exercise Entry per Exercise.
 _Avoid_: Workout exercise, slot, block
@@ -29,7 +33,7 @@ One bout of an Exercise within a Workout, recorded as reps and weight. A Set is 
 _Avoid_: Round
 
 **Completed Set**:
-A Set the user has confirmed as performed. Only Completed Sets are kept when a Workout finishes.
+A Set the user has confirmed as performed. Only Completed Sets are kept when a Workout finishes, so every Set in a finished Workout is a Completed Set, including Sets added when editing it later.
 _Avoid_: Done set, logged set
 
 **Warm-up Set**:
