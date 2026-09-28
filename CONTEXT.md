@@ -31,3 +31,11 @@ _Avoid_: Previous, last time
 **Prefill**:
 Seeding a newly added Exercise in a Workout with target Sets copied from its Last Performance.
 _Avoid_: Autofill, template
+
+**RIR (Reps in Reserve)**:
+The user's estimate of how many more reps they could have done on a Completed Set. Optional per Set.
+_Avoid_: RPE, effort, intensity
+
+**Muscle Group**:
+A body area an Exercise trains, e.g. "Chest". The unit the user sets priorities for.
+_Avoid_: Body part, muscle
