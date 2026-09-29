@@ -40,6 +40,10 @@ _Avoid_: Done set, logged set
 A Set the user marks as preparation rather than training. Kept like any Completed Set, but not counted as training volume.
 _Avoid_: Ramp-up set, prep set
 
+**Working Set**:
+A Set that is not a Warm-up Set. Working Sets count toward training volume.
+_Avoid_: Work set, top set
+
 **Last Performance**:
 The Completed Sets of an Exercise from the most recent finished Workout that contains it.
 _Avoid_: Previous, last time
