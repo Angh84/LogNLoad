@@ -79,7 +79,42 @@ Turning this build order into build issues is the next effort after the spec map
 
 ## App-wide conventions
 
-Pending: [What app-wide conventions does v1 follow?](https://github.com/Angh84/LogNLoad/issues/17) (appearance, Dynamic Type, orientation, device, language and formats, haptics, VoiceOver, app name and icon, Health permission revoked later).
+**Identity**
+- Display name: "LogNLoad".
+- Bundle identifier: `com.angh84.lognload`. Never change it after the first install: a new identifier is a new app, which leaves the SwiftData store behind and can no longer replace or delete the Health workouts written earlier.
+- Icon: a placeholder made in Icon Composer, one white glyph (a dumbbell or a plate) on a dark background, with the default, dark and tinted variants. The final icon doesn't block the build.
+
+**Device and orientation**
+- iPhone only. No iPad layout.
+- Portrait only.
+
+**Language and formats**
+- English UI only. Strings are written in code; no localization in v1.
+- Dates, times, numbers and the first weekday follow the device's Region setting, through `FormatStyle`. A Swedish region shows 24-hour times, weeks starting Monday and "62,5 kg".
+- Weight input accepts the Region's decimal separator.
+- Weight is always in kg, whatever the Region ([data-model.md](data-model.md#set)).
+- Format examples in this spec ("17:30", "14 - 20 Sep", "62.5 kg", the M-S week strip) show one Region's output, not fixed formats.
+
+**Appearance**
+- Dark only, forced app-wide (`UIUserInterfaceStyle` = `Dark` in Info.plist). No light mode and no override.
+- System semantic colors, plus one app accent color for primary actions (Complete, Start Workout, Finish) and selection (chips, week-strip dots). The hue is chosen during the build. It must meet WCAG AA contrast (4.5:1) for text on the accent and for the accent on the dark backgrounds.
+- Launch screen: a plain black background, no logo (`UILaunchScreen` in Info.plist).
+
+**Text and accessibility**
+- System text styles everywhere, so Dynamic Type scales all text.
+- Layouts stay usable up to the largest standard size (xxxLarge). The accessibility sizes (AX1 to AX5) get no layouts of their own: text still scales, wrapping and truncation are acceptable, and nothing is clipped away.
+- VoiceOver: SwiftUI's defaults only, and it isn't tested. Every icon-only button (chevron, note icon, stepper + and -, menus) has an accessibility label.
+- Reduce Motion: no special handling.
+
+**Feedback**
+- Haptics through `.sensoryFeedback`: `.success` on Complete Set and on Finish, `.selection` on each weight or reps stepper tap. No other custom haptics and no in-app toggle.
+- No sounds.
+
+**Health permission revoked later**
+- Handled exactly like Don't Allow at onboarding: nothing is shown anywhere.
+- Writes stay pending and deletes keep their Pending Health delete. Once sharing is turned back on in Health's settings, the [retry](healthkit.md#retry) writes and deletes all of them. Nothing pending is ever dropped.
+
+Settled in other files: the minimum iOS ([Platform](#platform)), normal auto-lock during a Workout ([logging-screen.md](logging-screen.md#set-loop)), no Settings screen ([navigation.md](navigation.md#tabs)).
 
 ## Open
 
@@ -95,4 +130,4 @@ Points the assembly found undecided. Each is marked **Open** where it applies.
 - When v1 ships, this README is marked "Frozen at v1". From then on the code, [CONTEXT.md](../../CONTEXT.md) and the ADRs are the truth, and later features get their own map.
 - [starter-library.md](starter-library.md) holds the initial seed content. Once the seed source exists in code, that source wins.
 
-Sources: [LogNLoad v1 spec](https://github.com/Angh84/LogNLoad/issues/1), [What shape does the v1 spec take, and where does it live?](https://github.com/Angh84/LogNLoad/issues/15), [Which storage stack and minimum iOS version?](https://github.com/Angh84/LogNLoad/issues/8), [What can a HealthKit strength workout carry, and what needs a paid account?](https://github.com/Angh84/LogNLoad/issues/4), [Which future features must the v1 data model leave room for?](https://github.com/Angh84/LogNLoad/issues/2)
+Sources: [LogNLoad v1 spec](https://github.com/Angh84/LogNLoad/issues/1), [What shape does the v1 spec take, and where does it live?](https://github.com/Angh84/LogNLoad/issues/15), [Which storage stack and minimum iOS version?](https://github.com/Angh84/LogNLoad/issues/8), [What can a HealthKit strength workout carry, and what needs a paid account?](https://github.com/Angh84/LogNLoad/issues/4), [Which future features must the v1 data model leave room for?](https://github.com/Angh84/LogNLoad/issues/2), [What app-wide conventions does v1 follow?](https://github.com/Angh84/LogNLoad/issues/17)
