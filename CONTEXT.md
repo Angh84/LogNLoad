@@ -57,8 +57,12 @@ The user's estimate of how many more reps they could have done on a Completed Se
 _Avoid_: RPE, effort, intensity
 
 **Muscle Group**:
-A body area an Exercise trains, e.g. "Upper Chest". The unit the user sets priorities for. Drawn from a fixed list; the user cannot add or rename them. "Traps" means the upper trapezius; the middle and lower trapezius belong to "Upper Back". "Glutes" means the gluteus maximus; the gluteus medius and minimus are "Abductors".
+A specific muscle area an Exercise trains, e.g. "Upper Chest". The unit the user sets priorities for. Drawn from a fixed list; the user cannot add or rename them. Each belongs to one Body Area. "Traps" means the upper trapezius; the middle and lower trapezius belong to "Upper Back". "Glutes" means the gluteus maximus; the gluteus medius and minimus are "Abductors".
 _Avoid_: Body part, muscle
+
+**Body Area**:
+A fixed grouping of Muscle Groups used to organise lists: Chest, Shoulders, Back, Arms, Core, Legs. Training volume and priorities are never set per Body Area, only per Muscle Group.
+_Avoid_: Region, body part
 
 **Muscle Emphasis**:
 How much one Set of an Exercise counts toward one Muscle Group's training volume, as a weight from 0 to 1 where 1.0 is a full direct Set, e.g. Bench Press has a Triceps emphasis of 0.5, so each Set counts as half a Triceps Set. An Exercise has one or more.
