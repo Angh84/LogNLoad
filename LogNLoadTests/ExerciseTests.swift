@@ -37,10 +37,10 @@ struct ExerciseTests {
 
     /// Adds an Entry for `exercise` to `workout` with one completed Set per (weight, reps).
     @discardableResult
-    func log(_ exercise: Exercise, in workout: Workout, _ sets: [(Double, Int)]) -> [WorkoutSet] {
+    func log(_ exercise: Exercise, in workout: Workout, _ sets: [(weight: Double, reps: Int)]) -> [WorkoutSet] {
         let entry = ExerciseEntry(workout: workout, exercise: exercise, order: workout.entries?.count ?? 0)
         return sets.enumerated().map { index, set in
-            WorkoutSet(entry: entry, order: index, weight: set.0, reps: set.1, completedAt: workout.startedAt)
+            WorkoutSet(entry: entry, order: index, weight: set.weight, reps: set.reps, completedAt: workout.startedAt)
         }
     }
 
@@ -182,12 +182,12 @@ struct ExerciseTests {
         let squat = exercise("Squat")
         let finished = workout(day(28), endedAt: day(28, 18))
         let entry = ExerciseEntry(workout: finished, exercise: squat, order: 0)
-        let top = WorkoutSet(entry: entry, order: 2, weight: 100, reps: 5, completedAt: day(28))
-        let warmUp = WorkoutSet(entry: entry, order: 0, weight: 40, reps: 10, isWarmUp: true, completedAt: day(28))
-        let ramp = WorkoutSet(entry: entry, order: 1, weight: 70, reps: 5, isWarmUp: true, completedAt: day(28))
+        let working = WorkoutSet(entry: entry, order: 2, weight: 100, reps: 5, completedAt: day(28))
+        let firstWarmUp = WorkoutSet(entry: entry, order: 0, weight: 40, reps: 10, isWarmUp: true, completedAt: day(28))
+        let secondWarmUp = WorkoutSet(entry: entry, order: 1, weight: 70, reps: 5, isWarmUp: true, completedAt: day(28))
         try context.save()
 
-        #expect(squat.lastPerformance == [warmUp, ramp, top])
+        #expect(squat.lastPerformance == [firstWarmUp, secondWarmUp, working])
     }
 
     @Test func lastPerformanceFollowsAnEditedStartTime() {
@@ -204,7 +204,7 @@ struct ExerciseTests {
 
     // MARK: Muscle Emphasis display, Top Muscle Group and Body Area placement
 
-    var deadlift: Exercise {
+    func deadlift() -> Exercise {
         exercise("Deadlift", emphases: [
             MuscleEmphasis(muscleGroup: .glutes, weight: 0.75),
             MuscleEmphasis(muscleGroup: .hamstrings, weight: 0.75),
@@ -223,11 +223,11 @@ struct ExerciseTests {
             MuscleEmphasis(muscleGroup: .upperChest, weight: 1),
         ])
         #expect(chestPress.emphasesInDisplayOrder.map(\.muscleGroup) == [.upperChest, .frontDelts, .lowerChest, .triceps])
-        #expect(deadlift.emphasesInDisplayOrder.map(\.muscleGroup) == [.glutes, .hamstrings, .lowerBack, .quads, .traps, .adductors])
+        #expect(deadlift().emphasesInDisplayOrder.map(\.muscleGroup) == [.glutes, .hamstrings, .lowerBack, .quads, .traps, .adductors])
     }
 
     @Test func theTopMuscleGroupIsTheHighestWeightAndTheFirstInStoredOrderOnATie() {
-        #expect(deadlift.topMuscleGroup == .glutes)
+        #expect(deadlift().topMuscleGroup == .glutes)
         #expect(exercise("Lat Pulldown", .cable, emphases: [
             MuscleEmphasis(muscleGroup: .biceps, weight: 0.5),
             MuscleEmphasis(muscleGroup: .lats, weight: 1),
@@ -235,7 +235,7 @@ struct ExerciseTests {
     }
 
     @Test func anExerciseIsPlacedInTheBodyAreaOfItsTopMuscleGroup() {
-        #expect(deadlift.bodyArea == .legs)
+        #expect(deadlift().bodyArea == .legs)
         #expect(exercise("Face Pull", .cable, emphases: [
             MuscleEmphasis(muscleGroup: .rearDelts, weight: 1),
             MuscleEmphasis(muscleGroup: .rotatorCuff, weight: 0.5),
