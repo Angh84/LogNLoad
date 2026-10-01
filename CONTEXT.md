@@ -53,7 +53,7 @@ Seeding a newly added Exercise in a Workout with target Sets copied from its Las
 _Avoid_: Autofill, template
 
 **RIR (Reps in Reserve)**:
-The user's estimate of how many more reps they could have done on a Completed Set. Optional per Set.
+The user's estimate of how many more reps they could have done on a Completed Set. Optional per Working Set; a Warm-up Set has none.
 _Avoid_: RPE, effort, intensity
 
 **Muscle Group**:

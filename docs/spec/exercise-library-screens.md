@@ -67,7 +67,7 @@ One form for new and existing Exercises: the Library's "+", Edit on an Exercise 
 ### Fields
 
 - Name, with inline errors: "You already have an Exercise called X." / "X is archived." On a new form the archived error adds "Unarchive it".
-  - **Open** ([What do the logging and Library screens do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/20)): where "Unarchive it" lands, and whether, from the picker's Create row, it also adds the Exercise to the Workout.
+- "Unarchive it" unarchives the Exercise with the toast "X is back in the Library" and drops what the form holds, with no prompt. From the Library, the form is replaced by the Exercise's page. From the picker's Create row, it also adds the Exercise to the Workout and closes the sheet onto its new Entry, as the picker's Unarchive row does ([logging-screen.md](logging-screen.md#exercise-picker)).
 - Muscle Groups: a chip cloud of all 22 Muscle Groups in Body Area rows. Tapping a chip adds it at 1.0, last in [stored order](data-model.md#muscle-emphasis). Tapping an added chip shows an inline 0.25 / 0.5 / 0.75 / 1.0 control with "Remove". A seed weight off that scale (e.g. 0.9) shows as it is until changed. Footer: "Each weight is how much one Set counts toward that Muscle Group: 1.0 is a full Set, 0.5 is half a Set."
 - Equipment: a 4 x 2 chip grid of the 8 options. When equipment is locked, the options across the weight convention are dimmed. For Dumbbell the footer reads "Weight is logged per dumbbell."; for Kettlebell, "Weight is logged per kettlebell."
 - Load Type: a 3-way segmented control with one line of help: Loaded "Weight is the load you lift.", Bodyweight "Weight is added load. 0 kg is bodyweight only.", Assisted "Weight is assistance, so a higher number is easier."
@@ -87,7 +87,7 @@ One form for new and existing Exercises: the Library's "+", Edit on an Exercise 
 |---|---|---|
 | Archive | "Archive X?" with "It's in N Workouts, so it stays in your history. It's hidden from the Library and the Exercise picker until you unarchive it." Cancel / Archive | Back to the Library, toast "X archived" |
 | Delete | "Delete X?" with "It isn't in any Workout, so it's deleted for good." For a seed, plus "Starter Exercises you delete don't come back." Cancel / Delete | Back to the Library, toast "X deleted" |
-| Unarchive | None. From the page banner, a Library search hit, the new form's "Unarchive it", or the picker's "Unarchive <name>" row | From a Library search hit: unarchived in place, toast "X is back in the Library" |
+| Unarchive | None. From the page banner, a Library search hit, the new form's "Unarchive it", or the picker's "Unarchive <name>" row | From a Library search hit: unarchived in place, toast "X is back in the Library". From the new form: [Fields](#fields). From the picker: [logging-screen.md](logging-screen.md#exercise-picker) |
 
 ## Merge
 
@@ -107,4 +107,4 @@ Merging X into Y, from X's edit form:
 - Merging X, which is in the Active Workout, into Y: the Active Workout's Entry for X becomes Y's, target Sets included. Prefill already copied is untouched.
 - Renaming a seed in the app lasts only until its source entry changes ([starter-library.md](starter-library.md#seeding-lifecycle)).
 
-Sources: [How do the Exercise Library screens look?](https://github.com/Angh84/LogNLoad/issues/16), [What does an Exercise record?](https://github.com/Angh84/LogNLoad/issues/5), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [What goes in the starter Exercise Library?](https://github.com/Angh84/LogNLoad/issues/9), [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13)
+Sources: [How do the Exercise Library screens look?](https://github.com/Angh84/LogNLoad/issues/16), [What does an Exercise record?](https://github.com/Angh84/LogNLoad/issues/5), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [What goes in the starter Exercise Library?](https://github.com/Angh84/LogNLoad/issues/9), [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13), [What do the logging and Library screens do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/20)

@@ -11,19 +11,21 @@ The app's structure: tabs, the pinned Workout bar, what launch shows, the loggin
 
 - A bar pinned above the tab bar on both tabs (`tabViewBottomAccessory`).
 - With no Active Workout it is "Start Workout".
-- During an Active Workout it shows the current Exercise, "Set n of m" and the elapsed timer. Tapping it expands the logging cover.
-  - **Open** ([What do the logging and Library screens do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/20)): what it shows when the Workout has no Exercise Entries, when the current Entry has no target Set left, and when the current Set is a Warm-up Set.
+- During an Active Workout it shows the current Exercise, a status line and the elapsed timer. Tapping it expands the logging cover.
+- The status line is the card's own heading ([logging-screen.md](logging-screen.md#set-loop)): "Set n of m" or "Warm-up" for the current Set, or "All N Sets done", "All Sets done" or "No Sets" when the current Entry has no target Set left.
+- With no Exercise Entries it shows "No Exercises yet" and the elapsed timer.
 
 ## Launch
 
 - First launch: the onboarding screen.
 - Any other launch with an Active Workout: the logging cover, expanded, with the stale prompt on top when it is due ([workout-lifecycle.md](workout-lifecycle.md#stale-workout)).
+- Returning from the background with the stale prompt due: the logging cover expands, if minimized, with the prompt on top.
 - Any other launch: the History tab.
 
 ## Logging cover
 
 - The Focus logging screen is a full-screen cover.
-- It minimizes into the pinned bar by swiping down or tapping its chevron. While minimized, History and Exercises are fully usable.
+- It minimizes into the pinned bar by swiping down or tapping its chevron. While minimized, History and Exercises are fully usable. Expanding it again keeps the current Entry and Set ([logging-screen.md](logging-screen.md#current-entry-and-set)).
 - "Start Workout" starts the Workout at once ([workout-lifecycle.md](workout-lifecycle.md#start)) and expands the cover with the Exercise picker sheet already up.
 - After Finish, the cover closes, the History tab is selected, and the list shows the new Workout ([history-screens.md](history-screens.md#finish-landing)). The bar returns to "Start Workout".
 - After Discard, the cover closes onto whichever tab was underneath.
@@ -51,4 +53,4 @@ The app's structure: tabs, the pinned Workout bar, what launch shows, the loggin
 - A Workout detail's "Exercise history >" pushes that Exercise's page in the current tab.
 - Nothing switches tabs, apart from Finish selecting History.
 
-Sources: [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13), [How does a Workout start, finish, and survive interruption?](https://github.com/Angh84/LogNLoad/issues/7), [How do the Exercise Library screens look?](https://github.com/Angh84/LogNLoad/issues/16)
+Sources: [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13), [How does a Workout start, finish, and survive interruption?](https://github.com/Angh84/LogNLoad/issues/7), [How do the Exercise Library screens look?](https://github.com/Angh84/LogNLoad/issues/16), [What do the logging and Library screens do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/20)
