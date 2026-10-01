@@ -1,3 +1,7 @@
+## Build and test
+
+Build, test, run in the simulator or install on the iPhone: see `docs/agents/build.md`.
+
 ## Agent skills
 
 ### Issue tracker
