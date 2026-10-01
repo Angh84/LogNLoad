@@ -1,0 +1,45 @@
+name: LogNLoad
+options:
+  deploymentTarget:
+    iOS: "27.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+targets:
+  LogNLoad:
+    type: application
+    platform: iOS
+    sources:
+      - LogNLoad
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.angh84.lognload
+        PRODUCT_NAME: LogNLoad
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: LogNLoad/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: QA7P2Z4M28
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: "1.0"
+  LogNLoadTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - LogNLoadTests
+    dependencies:
+      - target: LogNLoad
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.angh84.lognload.tests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  LogNLoad:
+    build:
+      targets:
+        LogNLoad: all
+        LogNLoadTests: [test]
+    test:
+      targets:
+        - LogNLoadTests
