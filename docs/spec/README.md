@@ -40,7 +40,7 @@ LogNLoad is a personal, local-first iPhone app for logging strength Workouts. Th
 
 ## Platform
 
-- Minimum iOS: iOS 27. If the iPhone 17e can't be upgraded from iOS 26.7, iOS 26.
+- Minimum iOS: iOS 27.
 - Storage: pure SwiftData ([data-model.md](data-model.md#storage)).
 - Signing: the free Personal Team, which includes HealthKit. Its provisioning profile expires after 7 days: rebuild and reinstall. No App Store, no TestFlight.
 
@@ -57,7 +57,7 @@ LogNLoad is a personal, local-first iPhone app for logging strength Workouts. Th
 | [exercise-library-screens.md](exercise-library-screens.md) | Library list, Exercise page, Exercise form, archive, delete and merge |
 | [starter-library.md](starter-library.md) | The 74 seed Exercises and the seeding lifecycle |
 
-Architecture decisions: [ADR-0001](../adr/0001-cloudkit-safe-swiftdata-model.md) (CloudKit-safe SwiftData model), [ADR-0002](../adr/0002-health-sync-identifier.md) (Health sync identifier), [ADR-0003](../adr/0003-seeds-reapplied-by-fingerprint.md) (seeds re-applied by fingerprint).
+Architecture decisions: [ADR-0001](../adr/0001-cloudkit-safe-swiftdata-model.md) (CloudKit-safe SwiftData model), [ADR-0002](../adr/0002-health-sync-identifier.md) (Health sync identifier), [ADR-0003](../adr/0003-seeds-reapplied-by-fingerprint.md) (seeds re-applied by fingerprint), [ADR-0004](../adr/0004-muscle-emphases-value-list.md) (Muscle Emphases as a value list).
 
 Background research: [SwiftData and CloudKit](../research/swiftdata-cloudkit.md), [HealthKit strength workouts](../research/healthkit-strength.md).
 
@@ -120,7 +120,6 @@ Settled in other files: the minimum iOS ([Platform](#platform)), normal auto-loc
 
 Points the assembly found undecided. Each is marked **Open** where it applies.
 
-- [What does the data layer do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/19)
 - [What do the logging and Library screens do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/20)
 - [What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)
 
@@ -130,4 +129,4 @@ Points the assembly found undecided. Each is marked **Open** where it applies.
 - When v1 ships, this README is marked "Frozen at v1". From then on the code, [CONTEXT.md](../../CONTEXT.md) and the ADRs are the truth, and later features get their own map.
 - [starter-library.md](starter-library.md) holds the initial seed content. Once the seed source exists in code, that source wins.
 
-Sources: [LogNLoad v1 spec](https://github.com/Angh84/LogNLoad/issues/1), [What shape does the v1 spec take, and where does it live?](https://github.com/Angh84/LogNLoad/issues/15), [Which storage stack and minimum iOS version?](https://github.com/Angh84/LogNLoad/issues/8), [What can a HealthKit strength workout carry, and what needs a paid account?](https://github.com/Angh84/LogNLoad/issues/4), [Which future features must the v1 data model leave room for?](https://github.com/Angh84/LogNLoad/issues/2), [What app-wide conventions does v1 follow?](https://github.com/Angh84/LogNLoad/issues/17)
+Sources: [LogNLoad v1 spec](https://github.com/Angh84/LogNLoad/issues/1), [What shape does the v1 spec take, and where does it live?](https://github.com/Angh84/LogNLoad/issues/15), [Which storage stack and minimum iOS version?](https://github.com/Angh84/LogNLoad/issues/8), [What can a HealthKit strength workout carry, and what needs a paid account?](https://github.com/Angh84/LogNLoad/issues/4), [Which future features must the v1 data model leave room for?](https://github.com/Angh84/LogNLoad/issues/2), [What app-wide conventions does v1 follow?](https://github.com/Angh84/LogNLoad/issues/17), [What does the data layer do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/19)

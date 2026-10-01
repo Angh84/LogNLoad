@@ -28,7 +28,7 @@ How seed weights are set, for adding or changing seeds:
 
 ## Seeds
 
-Every seed has its own fixed UUID, generated once when the seed source is written and never changed. Every seed starts with an empty note and not archived. The groups below organise this table only; the Library places each Exercise by its [Body Area placement](data-model.md#derived-never-stored).
+Every seed has its own fixed UUID, generated once when the seed source is written and never changed. Every seed starts with an empty note and not archived. Muscle Emphases are stored in the order listed, which breaks weight ties ([data-model.md](data-model.md#muscle-emphasis)). The groups below organise this table only; the Library places each Exercise by its [Body Area placement](data-model.md#derived-never-stored).
 
 ### Chest
 
@@ -138,7 +138,9 @@ Every seed has its own fixed UUID, generated once when the seed source is writte
 
 - The seed list lives in source; the user adds and changes seeds there.
 - On every launch, the app compares each source seed with the [Seed record](data-model.md#seed-record) for its UUID:
-  - no Seed record (never applied): insert the Exercise and create the Seed record with the entry's fingerprint;
+  - no Seed record (never applied), and no Exercise has the seed's name (ignoring case): insert the Exercise and create the Seed record with the entry's fingerprint;
+  - no Seed record, and a custom Exercise has the seed's name, archived or not: adopt it. It takes the seed's UUID as its `id` (its Entries reference it by relationship, so its history stays), the source entry is applied as an overwrite (below), its note and archived flag are kept, and the Seed record is created;
+  - no Seed record, and another seed has the seed's name: skip, with no Seed record, so it is retried on every launch and inserted once the name is free;
   - a Seed record whose fingerprint differs from the source entry's: overwrite the Exercise's name, Muscle Emphases, equipment, Load Type and unilateral flag, and store the new fingerprint;
   - otherwise: nothing.
 - Only a source change overwrites a seed: in-app edits to a seed last until its source entry changes.
@@ -146,13 +148,14 @@ Every seed has its own fixed UUID, generated once when the seed source is writte
 - A seed deleted or merged away in the app stays gone: its Seed record remains, and there is no Exercise to overwrite.
 - A seed removed from source leaves the store untouched.
 - Skipped when overwriting a seed with history: Load Type, the unilateral flag, and an equipment change across the weight convention (the [lock](data-model.md#invariants)). Also skipped: a rename that collides with an existing name, Archived Exercises included.
-  - **Open** ([What does the data layer do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/19)): whether the stored fingerprint moves to the new entry when part of it was skipped.
-- **Open** ([What does the data layer do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/19)): what an insert does when an Exercise with the seed's name already exists.
+- The stored fingerprint always moves to the entry just processed, even when part of it was skipped. Skipped parts are dropped; only a later change to the source entry tries them again.
 
 ## Edge cases
 
 - Renaming a seed in the app, then changing its Muscle Emphases in source: the next launch also puts the source name back.
 - A seed with history whose source entry changes its Load Type: the other fields are overwritten; the Load Type stays.
 - Deleting a seed in the app, then editing its source entry: nothing is inserted, since its Seed record exists.
+- Creating "Pec Deck (Hoist)" in the app, then adding it to source as a seed: the next launch adopts the custom Exercise as that seed, with its history and note.
+- A seed with history whose source entry changes its Load Type and Muscle Emphases: the Muscle Emphases are overwritten, the Load Type is dropped, and the fingerprint moves, so later launches don't retry it.
 
-Sources: [What goes in the starter Exercise Library?](https://github.com/Angh84/LogNLoad/issues/9), [What does an Exercise record?](https://github.com/Angh84/LogNLoad/issues/5), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [Is SwiftData ready, and what does later CloudKit sync constrain?](https://github.com/Angh84/LogNLoad/issues/3)
+Sources: [What goes in the starter Exercise Library?](https://github.com/Angh84/LogNLoad/issues/9), [What does an Exercise record?](https://github.com/Angh84/LogNLoad/issues/5), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [Is SwiftData ready, and what does later CloudKit sync constrain?](https://github.com/Angh84/LogNLoad/issues/3), [What does the data layer do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/19)

@@ -12,12 +12,12 @@ Every stored entity with its attributes, relationships and invariants, plus what
   - no `.deny` delete rule;
   - order is an explicit `order` attribute, never the order of a to-many relationship.
 - Entity names, attribute names and types are permanent: once CloudKit's production schema exists it can only be added to.
+- The Swift type names are the entity names: `Workout`, `ExerciseEntry`, `WorkoutSet`, `Exercise`, `SeedRecord`, `PendingHealthDelete`.
 - A `VersionedSchema` (`SchemaV1`) and a `SchemaMigrationPlan` exist from the first build.
 - Every entity has `id: UUID` and `version: Int = 1`.
 - The store uses the default `ModelConfiguration`: no custom store URL, no App Group in v1.
 - Views read with `@Query`. Counts, Last Performance and other derived values are computed in memory; there are no aggregate fetches.
-- `#Index` on Workout `endedAt` and on Exercise Entry `exercise`.
-  - **Open** ([What does the data layer do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/19)): "most recent" is ordered by `startedAt`, so which Workout date gets the index.
+- `#Index` on Workout `startedAt` (History, Last Performance and "most recent" all order by it) and on Exercise Entry `exercise`.
 
 In the tables, "optional, always set" means the store allows empty because of the CloudKit rules, but the app never saves the record without a value.
 
@@ -51,7 +51,7 @@ In the tables, "optional, always set" means the store allows empty because of th
 
 ### Set
 
-**Open** ([What does the data layer do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/19)): the entity's type name, since `Set` collides with Swift's `Set` and the name is permanent.
+The type and entity name is `WorkoutSet`, since `Set` collides with Swift's `Set`. The UI and this spec still say Set.
 
 | Attribute | Type | Store | Rule |
 |---|---|---|---|
@@ -72,7 +72,7 @@ In the tables, "optional, always set" means the store allows empty because of th
 
 | Attribute | Type | Store | Rule |
 |---|---|---|---|
-| `id` | UUID | default new UUID | A seeded Exercise uses its fixed seed UUID |
+| `id` | UUID | default new UUID | A seeded Exercise uses its fixed seed UUID. Changes only when a custom Exercise is adopted as a seed ([starter-library.md](starter-library.md#seeding-lifecycle)) |
 | `version` | Int | default 1 | |
 | `name` | String | optional, always set | Required. Unique (see [Invariants](#invariants)) |
 | `equipment` | enum: Barbell, Dumbbell, Kettlebell, Machine, Cable, Band, Bodyweight, Other | optional, always set | |
@@ -80,14 +80,31 @@ In the tables, "optional, always set" means the store allows empty because of th
 | `isUnilateral` | Bool | default false | Left and right reps are logged separately |
 | `note` | String | optional | One free-text note, editable any time, shown while logging (e.g. machine settings) |
 | `isArchived` | Bool | default false | |
-| Muscle Emphases | one or more (Muscle Group, weight) | **Open** ([What does the data layer do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/19)): an entity of its own or a value list on Exercise | Weight 0.0 to 1.0, 2 decimals. A Muscle Group appears at most once per Exercise |
+| `muscleEmphases` | [Muscle Emphasis] | `.codable`, default empty, always one or more | A value list in [stored order](#muscle-emphasis) |
 | `entries` | [Exercise Entry] | relationship | |
 
 Weight is kg app-wide; there is no per-Exercise unit. Body weight is not stored.
 
+### Muscle Emphasis
+
+A Codable value stored inside Exercise `muscleEmphases`, not an entity ([ADR-0004](../adr/0004-muscle-emphases-value-list.md)).
+
+| Field | Type | Rule |
+|---|---|---|
+| `muscleGroup` | Muscle Group | Stored by its raw key |
+| `weight` | Double | 0.0 to 1.0, 2 decimals |
+
+- A Muscle Group appears at most once per Exercise.
+- `.codable` is opaque to predicates and sorting, so everything that reads Muscle Emphases does it in memory.
+- A change to the value's shape triggers no migration: a field added later is optional or decodes with a default.
+- Stored order:
+  - a seed takes the order of its source entry ([starter-library.md](starter-library.md#seeds));
+  - the Exercise form appends a newly added Muscle Group at the end;
+  - changing a weight keeps its place; removing a Muscle Group and adding it again puts it at the end.
+
 ### Muscle Group and Body Area
 
-A fixed list of 22 Muscle Groups, each in one Body Area. Not user-editable; new Muscle Groups ship in an app update. In list order:
+A fixed list of 22 Muscle Groups, each in one Body Area. Not user-editable; new Muscle Groups ship in an app update. Each has a stable raw key, its name in camelCase (`upperChest`, `frontDelts`, `lowerBack`), which is what records store and which never changes when a display name does. In list order:
 
 | Body Area | Muscle Groups |
 |---|---|
@@ -137,8 +154,8 @@ Seed record and Pending Health delete have no relationships.
 - A finished Workout's `endedAt` is after its `startedAt` and not in the future.
 - Workouts never overlap. Two Workouts overlap when each starts before the other ends; the Active Workout ends now.
 - A finished Workout has at least one Exercise Entry, each of its Entries has at least one Set, and each of its Sets is a Completed Set.
-- Exercise names are unique ignoring case and surrounding whitespace, Archived Exercises included.
-  - **Open** ([What does the data layer do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/19)): whether names are stored trimmed.
+- Exercise names are unique ignoring case, Archived Exercises included, compared as stored.
+- Exercise and Workout names and every note (Workout, Exercise Entry, Set, Exercise) are stored trimmed of leading and trailing whitespace and newlines. Inner spacing is kept as typed. Empty after trimming is stored as no value.
 - An Exercise with history never changes `loadType` or `isUnilateral`, and changes `equipment` only within its weight convention.
 - An Exercise with history is never hard-deleted, except by merge after its Entries have moved.
 - An Exercise in the Active Workout is never archived.
@@ -155,8 +172,8 @@ Seed record and Pending Health delete have no relationships.
 - **History** of an Exercise: it has an Exercise Entry in any Workout, the Active Workout included. "In N Workouts" counts those Workouts.
 - **Last Performance**: the Sets of the Exercise's Entry in the finished Workout with the latest `startedAt` that contains it, in order. None when no finished Workout contains it. Recomputed on every read, so edits, swaps, merges, time changes and deletes apply at once. The Active Workout never counts.
 - **Working Set**: a Set with `isWarmUp` false.
-- **Top Muscle Group**: the Muscle Group of the Exercise's highest Muscle Emphasis weight. On a tie, the one listed first on the Exercise wins (Deadlift: Glutes).
-  - **Open** ([What does the data layer do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/19)): how "listed first" is stored, and how it is set for custom Exercises.
+- **Top Muscle Group**: the Muscle Group of the Exercise's highest Muscle Emphasis weight. On a tie, the first in [stored order](#muscle-emphasis) wins (Deadlift: Glutes).
+- **Muscle Emphasis display order**: highest weight first, ties in stored order.
 - **Body Area placement**: the Body Area of the Top Muscle Group (Deadlift: Legs).
 - **Seed**: an Exercise whose `id` has a Seed record.
 - **Health pending**: a finished Workout whose `healthConfirmedVersion` differs from its `healthWriteCounter`.
@@ -179,4 +196,4 @@ Later add-ons the v1 model must not block, and what v1 does now for each:
 | Tonnage across Exercises | Nothing now. Later: an implement count |
 | Total load of Bodyweight Exercises | Nothing now. Later: derived from HealthKit `bodyMass` history |
 
-Sources: [Which future features must the v1 data model leave room for?](https://github.com/Angh84/LogNLoad/issues/2), [Is SwiftData ready, and what does later CloudKit sync constrain?](https://github.com/Angh84/LogNLoad/issues/3), [What does an Exercise record?](https://github.com/Angh84/LogNLoad/issues/5), [What does a Set record beyond reps and weight?](https://github.com/Angh84/LogNLoad/issues/6), [How does a Workout start, finish, and survive interruption?](https://github.com/Angh84/LogNLoad/issues/7), [Which storage stack and minimum iOS version?](https://github.com/Angh84/LogNLoad/issues/8), [What goes in the starter Exercise Library?](https://github.com/Angh84/LogNLoad/issues/9), [What does a finished Workout write to Health, and how do edits sync?](https://github.com/Angh84/LogNLoad/issues/10), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [How do the Workout history screens look?](https://github.com/Angh84/LogNLoad/issues/14), [How do the Exercise Library screens look?](https://github.com/Angh84/LogNLoad/issues/16)
+Sources: [Which future features must the v1 data model leave room for?](https://github.com/Angh84/LogNLoad/issues/2), [Is SwiftData ready, and what does later CloudKit sync constrain?](https://github.com/Angh84/LogNLoad/issues/3), [What does an Exercise record?](https://github.com/Angh84/LogNLoad/issues/5), [What does a Set record beyond reps and weight?](https://github.com/Angh84/LogNLoad/issues/6), [How does a Workout start, finish, and survive interruption?](https://github.com/Angh84/LogNLoad/issues/7), [Which storage stack and minimum iOS version?](https://github.com/Angh84/LogNLoad/issues/8), [What goes in the starter Exercise Library?](https://github.com/Angh84/LogNLoad/issues/9), [What does a finished Workout write to Health, and how do edits sync?](https://github.com/Angh84/LogNLoad/issues/10), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [How do the Workout history screens look?](https://github.com/Angh84/LogNLoad/issues/14), [How do the Exercise Library screens look?](https://github.com/Angh84/LogNLoad/issues/16), [What does the data layer do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/19)
