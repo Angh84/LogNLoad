@@ -19,9 +19,8 @@ Prototype: [history-screens.prototype.html](../../prototypes/history-screens/his
 - The root of the History tab: one continuous list of finished Workouts, newest `startedAt` first.
 - The Active Workout is in neither the list nor the calendar; it lives only in the pinned bar.
 - Sticky week sections, Monday to Sunday, headed "This week", "Last week", then the date range ("14 - 20 Sep"), each with "N Workouts, N Sets".
-  - **Open** ([What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)): the range when a week spans two months.
-- A row: a date block (weekday and day of month), the [Workout title](#workout-title), and "17:30, 70 min - 5 Exercises, 14 Sets" (start time, duration, Exercise count, Set count).
-  - **Open** ([What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)): the duration format here and on the other screens.
+  - The range is `Date.IntervalFormatStyle` with day and abbreviated month, which writes shared parts once: "14 - 20 Sep", "28 Sep - 4 Oct". When any of its days is outside the current year, the year is added: "15 - 21 Sep 2025", "29 Dec 2025 - 4 Jan 2026".
+- A row: a date block (weekday and day of month), the [Workout title](#workout-title), and "17:30, 1 h 10 min - 5 Exercises, 14 Sets" (start time, [duration](README.md#display-formats), Exercise count, Set count).
 - Tapping a row pushes its [Workout detail](#workout-detail).
 - Swiping a row deletes the Workout, behind the [Delete Workout confirm](#workout-detail).
 - Empty state, with no calendar: "No Workouts yet. Tap Start Workout to log your first one."
@@ -32,8 +31,7 @@ Prototype: [history-screens.prototype.html](../../prototypes/history-screens/his
 
 ## Calendar
 
-- A month grid above the list, with a header naming the month and its counts.
-  - **Open** ([What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)): the month header's exact content.
+- A month grid above the list, headed with the month and year ("September 2026") and "N Workouts, N Sets": the finished Workouts whose `startedAt` falls in that month. A month without any reads "No Workouts".
 - Days with Workouts show one dot per Workout. Today is ringed. Future days are faint. Days without Workouts can't be tapped.
 - On scroll, the grid collapses into a pinned one-week strip (M-S, with dots) that follows the list. Tapping the strip expands the month.
 - If the strip is too costly to build, the fallback is a grid that scrolls away as the list's header.
@@ -48,10 +46,9 @@ Prototype: [history-screens.prototype.html](../../prototypes/history-screens/his
 - Pushed in the current tab's stack. Nav bar: back ("< History" from the list) and "Edit" on the right.
 - While an Active Workout exists, Edit is disabled and a banner at the top reads "Finish or discard your current Workout to edit."
 - Title: the Workout's name; for an unnamed Workout, its date, with the Exercise names as a subtitle.
-- Tiles: Duration (with the start and end times), Exercises, Sets (with "+ N warm-up" when there are any).
+- Tiles: Duration ([format](README.md#display-formats), with the start and end times), Exercises, Sets (with "+ N warm-up" when there are any).
 - The Workout note, under the tiles.
-- Exercises: one collapsed row per Entry, with a compact Set summary ("W 30 kg x 10 / 62.5 kg x 10, 9, 8") and a note icon when the Entry or any of its Sets has a note.
-  - **Open** ([What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)): how the compact summary groups Sets, and how unilateral, Bodyweight and Assisted Sets are written.
+- Exercises: one collapsed row per Entry, with a [compact Set summary](README.md#display-formats) ("W 30 kg x 10 / 62.5 kg x 10, 9, 8") and a note icon when the Entry or any of its Sets has a note.
 - Tapping an Exercise row only expands it: its Sets with W / 1..n labels, RIR and Set notes, then the Entry note, then "Exercise history >", which pushes its [Exercise page](exercise-library-screens.md#exercise-page).
 - "Expand all" / "Collapse all". Expanded state is not remembered.
 - At the bottom, a red "Delete Workout" row. Its confirm: "Delete this Workout?" with "It's removed from history and from Health. This can't be undone." Cancel / Delete. After Delete, the detail closes (back to History, or to the Exercise page it was opened from), with the toast "Workout deleted".
@@ -65,4 +62,4 @@ Prototype: [history-screens.prototype.html](../../prototypes/history-screens/his
 - A Workout detail opened from an Exercise page in the Exercises tab has the same Edit and Delete Workout rules.
 - Finishing a Workout with a backdated end ("Last Set") still lands with the new Workout at the top: no finished Workout can start after the Active Workout started.
 
-Sources: [How do the Workout history screens look?](https://github.com/Angh84/LogNLoad/issues/14), [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13), [How does a Workout start, finish, and survive interruption?](https://github.com/Angh84/LogNLoad/issues/7), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [How do the Exercise Library screens look?](https://github.com/Angh84/LogNLoad/issues/16)
+Sources: [How do the Workout history screens look?](https://github.com/Angh84/LogNLoad/issues/14), [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13), [How does a Workout start, finish, and survive interruption?](https://github.com/Angh84/LogNLoad/issues/7), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [How do the Exercise Library screens look?](https://github.com/Angh84/LogNLoad/issues/16), [What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)

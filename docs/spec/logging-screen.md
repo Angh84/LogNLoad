@@ -8,7 +8,7 @@ Prototype: [logging-flow.prototype.html](../../prototypes/logging-screen/logging
 
 ### Nav bar
 
-- Active Workout: the elapsed timer in the middle, "Finish" on the right. No "..." Workout menu.
+- Active Workout: the [elapsed timer](README.md#display-formats) in the middle, "Finish" on the right. No "..." Workout menu.
 - Edit mode: [see Edit mode](#edit-mode).
 
 ### Chip pager
@@ -38,8 +38,8 @@ Top to bottom:
 - The Entry note, when it has one (added from the "..." menu).
 - The current Set:
   - its title: "Set n of m", where n is its number among the Entry's Working Sets and m is how many Working Sets the Entry has; or "Warm-up" for a Warm-up Set;
-  - a big weight stepper: 2.5 kg per tap, never below 0. Tapping the number lets the user type any value, stored to 2 decimals;
-  - a big reps stepper, 1 per tap, never below 0. For a unilateral Exercise, a Left and a Right reps stepper;
+  - a big weight stepper: 2.5 kg per tap, never below 0. Tapping the number lets the user type any value, stored to 2 decimals. Its unit is always "kg"; its label is "Weight", or "Weight per dumbbell" / "Weight per kettlebell" for that equipment, "Added weight" for Bodyweight, "Assistance" for Assisted;
+  - a big reps stepper labelled "Reps", 1 per tap, never below 0. For a unilateral Exercise, a "Left" and a "Right" reps stepper;
   - a "Warm-up" chip that toggles `isWarmUp`, and a "Set note" chip that opens the Set note field. Turning "Warm-up" on clears the Set's RIR ([data-model.md](data-model.md#invariants));
   - on a Completed Working Set, an RIR chip that changes its RIR. A Warm-up Set has no RIR chip;
   - the primary action ([Set loop](#set-loop)).
@@ -48,7 +48,7 @@ Top to bottom:
 ### Sets log
 
 - Under the card, a "Sets" header with "+ Add Set", in the Active Workout and in edit mode.
-- Then every Set of the current Entry in order: its label (W for a Warm-up Set; Working Sets numbered 1..n), its values, its RIR and a tick when completed.
+- Then every Set of the current Entry in order: its label (W for a Warm-up Set; Working Sets numbered 1..n), its values ([one Set](README.md#display-formats)), its RIR and a tick when completed.
 - Tapping a row makes that Set current.
 - Swiping a row deletes the Set. Long-press and drag reorders.
 
@@ -78,17 +78,16 @@ Exactly these items:
 ## Overview sheet
 
 - Opened by the list button at the start of the pager.
-- At the top, the Workout name and note fields. Then every Entry with its Set summary. At the bottom, "Discard Workout".
+- At the top, the Workout name and note fields. Then every Entry with the [compact Set summary](README.md#display-formats) of its Completed Sets, Warm-up Sets included, or "No Sets completed" when it has none yet. At the bottom, "Discard Workout".
 - Drag an Entry to reorder, swipe it to remove it ([Remove Exercise](#prompts)), tap it to jump to it.
-- The same sheet is used in edit mode, where it ends after the Entries: no "Discard Workout" and nothing in its place.
+- The same sheet is used in edit mode, where it ends after the Entries: no "Discard Workout" and nothing in its place. Every Set there is completed, so each Entry shows its full summary, or "No Sets" when it has none.
 
 ## Exercise picker
 
 - Opened by the "+" chip, or already up after "Start Workout".
 - A search field, then the sections "In this Workout", "Recent" and "All Exercises" (A-Z).
 - "Recent": up to 8 Exercises from finished Workouts, each once, ordered by the latest `startedAt` of a finished Workout that contains it. Exercises from the same Workout follow its Entry order. Exercises already in this Workout and Archived Exercises are left out before counting to 8. Hidden when empty.
-- Every row shows the Exercise's Last Performance.
-  - **Open** ([What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)): the row's format.
+- Every row shows the Exercise's [Last Performance line](README.md#display-formats).
 - Archived Exercises are not offered.
 - An Exercise already in the Workout is tagged "In Workout". Picking it switches to its chip, with the toast "<name> is already in this Workout".
 - Picking any other Exercise appends its Entry ([workout-lifecycle.md](workout-lifecycle.md#adding-an-exercise)) and makes it current.
@@ -101,10 +100,9 @@ Exactly these items:
   - the duration and time range; the Exercise count, counting Entries with at least one Completed Set; and the Set count, counting Completed Working Sets, with "+ N warm-up" when there are completed Warm-up Sets;
   - the warning "N target Sets not completed will be removed", when there are any;
   - the warning "<Exercises> have no completed Sets and will be removed", when there are any;
-  - when the last Completed Set is more than 15 minutes old, the end-time choice "Last Set hh:mm" (the default) / "Now hh:mm";
+  - when the last Completed Set is more than 15 minutes old, the end-time choice "Last Set hh:mm" (the default) / "Now hh:mm" ([times on another day](#prompts));
   - "Finish Workout" and "Keep Logging".
-- With zero Completed Sets, "Finish" instead shows the alert "Discard this Workout?" with "No Sets are completed, so there is nothing to save."
-  - **Open** ([What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)): the alert's buttons.
+- With zero Completed Sets, "Finish" instead shows the alert "Discard this Workout?" with "No Sets are completed, so there is nothing to save." Keep Logging / Discard. Discard deletes the Workout at once.
 
 ## Edit mode
 
@@ -123,16 +121,18 @@ Exactly these items:
 |---|---|---|---|
 | Discard Workout | "Discard Workout?" | "This deletes the Workout and its N Sets. Nothing is saved to history or Health." | Cancel / Discard |
 | Stale Workout on reopen ([rule](workout-lifecycle.md#stale-workout)) | "Workout still open" | "Your last Set was at hh:mm, N ago. Finishing removes N target Sets not completed." | "Finish at hh:mm" / Resume / Discard (Discard leads to the Discard Workout confirm) |
-| Stale Workout, zero Completed Sets | "Workout still open" | **Open** ([What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)) | Resume / Discard |
-| Remove Exercise, only when the Entry has Completed Sets (otherwise it is removed at once) | "Remove <name>?" | "Its N completed Sets will be deleted." | **Open** ([What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)) |
+| Stale Workout, zero Completed Sets | "Workout still open" | "You started it at hh:mm, N ago, and completed no Sets." | Resume / Discard (Discard deletes the Workout at once) |
+| Remove Exercise, only when the Entry has Completed Sets (otherwise it is removed at once) | "Remove <name>?" | "Its N completed Sets will be deleted." | Cancel / Remove |
 | Edit mode Cancel, only when something changed | "Discard your changes?" | none | Keep Editing / Discard |
 | Edit mode Done, overlap | "Overlaps <Workout>" | "That Workout ran <date>, hh:mm to hh:mm. Change the start or end time so they don't overlap." | OK |
-| Edit mode Done, invalid times | "Can't save these times" | The reason: the end isn't after the start, or the end is in the future. **Open** ([What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)): the reason's wording | OK |
+| Edit mode Done, invalid times | "Can't save these times" | "The end time must be after the start time." or "The end time can't be in the future."; when both apply, only the first | OK |
 | Edit mode Done, zero Sets | "Delete this Workout?" | "You removed every Set, so saving would leave an empty Workout. It is deleted instead, from history and from Health." | Keep Editing / Delete |
 | Swap into an Exercise already in the Workout | "Combine with <Y>?" | "<Y> is already in this Workout. Its Entry keeps the earlier position, the Sets from <X> are added after its own, and the notes are joined." | Cancel / Combine |
 
 - In the Discard Workout message, N counts the Completed Sets, Warm-up Sets included. With no Completed Sets, it reads "This deletes the Workout. Nothing is saved to history or Health."
-- **Open** ([What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)): the stale message when no target Set is left, and the "N ago" format.
+- In the stale message, the "Finishing removes N target Sets not completed." sentence is left out when no target Set is left.
+- "N ago" is a [duration](README.md#display-formats) under 24 hours ("3 h 20 min ago"), then whole days ("1 day ago", "2 days ago").
+- A `hh:mm` in the stale prompts, the "Finish at hh:mm" button and the Finish sheet's end-time choice is the time alone when it's today, otherwise with the weekday, day and abbreviated month ("Tue 22 Sep, 17:42").
 - `<Workout>` in the overlap title is the Workout title ([history-screens.md](history-screens.md#workout-title)).
 
 ## Edge cases
@@ -143,4 +143,4 @@ Exactly these items:
 - Completing the last target Set of the last Entry: after the RIR panel (none for a Warm-up Set), the card shows "All N Sets done" with "Add Set" and "Add Exercise".
 - Undoing a completion in the "All N Sets done" state's Entry makes that Set a target again, so the card returns to the Set loop on it.
 
-Sources: [How does the logging screen flow?](https://github.com/Angh84/LogNLoad/issues/12), [What does a Set record beyond reps and weight?](https://github.com/Angh84/LogNLoad/issues/6), [How does a Workout start, finish, and survive interruption?](https://github.com/Angh84/LogNLoad/issues/7), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13), [What do the logging and Library screens do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/20)
+Sources: [How does the logging screen flow?](https://github.com/Angh84/LogNLoad/issues/12), [What does a Set record beyond reps and weight?](https://github.com/Angh84/LogNLoad/issues/6), [How does a Workout start, finish, and survive interruption?](https://github.com/Angh84/LogNLoad/issues/7), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13), [What do the logging and Library screens do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/20), [What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)

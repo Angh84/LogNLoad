@@ -5,8 +5,7 @@ What a finished Workout writes to Apple Health, when permission is asked, how ed
 ## Setup
 
 - The HealthKit capability (entitlement `com.apple.developer.healthkit`). The free Personal Team supports it.
-- `NSHealthUpdateUsageDescription` in Info.plist.
-  - **Open** ([What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)): its text.
+- `NSHealthUpdateUsageDescription` in Info.plist: "LogNLoad saves your finished Workouts to Health as strength training, with their start and end times. It doesn't read anything from Health."
 - No read permissions: the app never reads from Health.
 
 ## Permission
@@ -57,4 +56,4 @@ What a finished Workout writes to Apple Health, when permission is asked, how ed
 - Deleting a Workout whose first write never succeeded: the delete finds nothing in Health, which counts as done.
 - A time edit saved while permission is denied: the Workout stays pending and is written after a later grant.
 
-Sources: [What can a HealthKit strength workout carry, and what needs a paid account?](https://github.com/Angh84/LogNLoad/issues/4), [What does a finished Workout write to Health, and how do edits sync?](https://github.com/Angh84/LogNLoad/issues/10), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13)
+Sources: [What can a HealthKit strength workout carry, and what needs a paid account?](https://github.com/Angh84/LogNLoad/issues/4), [What does a finished Workout write to Health, and how do edits sync?](https://github.com/Angh84/LogNLoad/issues/10), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13), [What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)
