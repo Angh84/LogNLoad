@@ -45,7 +45,7 @@ Prototype: [exercise-library.prototype.html](../../prototypes/exercise-library/e
 - Header: the name, then "Machine - Loaded - Unilateral - kg per dumbbell", showing only the parts that apply ("Unilateral" only when unilateral, "kg per dumbbell" or "kg per kettlebell" only for that equipment).
 - An "In your current Workout" pill while it is in the Active Workout.
 - The Exercise note.
-- A Muscle Groups card: one bar per Muscle Emphasis, highest weight first, each with its weight.
+- A Muscle Groups card: one bar per Muscle Emphasis, in [display order](data-model.md#derived-never-stored), each with its weight.
 - Tiles: Workouts (finished Workouts only), Last (date), First (date).
 - History: its finished Workouts, newest first, in month sections. A row: a date block, the [Workout title](history-screens.md#workout-title), and a compact Set summary including Warm-up Sets ("W 30 kg x 10 / 62.5 kg x 10, 9, 8"). The Active Workout is not listed. RIR and Set notes stay on the Workout detail.
 - Tapping a history row pushes that Workout's [detail](history-screens.md#workout-detail), with its Edit and Delete Workout rules.
@@ -68,7 +68,7 @@ One form for new and existing Exercises: the Library's "+", Edit on an Exercise 
 
 - Name, with inline errors: "You already have an Exercise called X." / "X is archived." On a new form the archived error adds "Unarchive it".
   - **Open** ([What do the logging and Library screens do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/20)): where "Unarchive it" lands, and whether, from the picker's Create row, it also adds the Exercise to the Workout.
-- Muscle Groups: a chip cloud of all 22 Muscle Groups in Body Area rows. Tapping a chip adds it at 1.0. Tapping an added chip shows an inline 0.25 / 0.5 / 0.75 / 1.0 control with "Remove". A seed weight off that scale (e.g. 0.9) shows as it is until changed. Footer: "Each weight is how much one Set counts toward that Muscle Group: 1.0 is a full Set, 0.5 is half a Set."
+- Muscle Groups: a chip cloud of all 22 Muscle Groups in Body Area rows. Tapping a chip adds it at 1.0, last in [stored order](data-model.md#muscle-emphasis). Tapping an added chip shows an inline 0.25 / 0.5 / 0.75 / 1.0 control with "Remove". A seed weight off that scale (e.g. 0.9) shows as it is until changed. Footer: "Each weight is how much one Set counts toward that Muscle Group: 1.0 is a full Set, 0.5 is half a Set."
 - Equipment: a 4 x 2 chip grid of the 8 options. When equipment is locked, the options across the weight convention are dimmed. For Dumbbell the footer reads "Weight is logged per dumbbell."; for Kettlebell, "Weight is logged per kettlebell."
 - Load Type: a 3-way segmented control with one line of help: Loaded "Weight is the load you lift.", Bodyweight "Weight is added load. 0 kg is bodyweight only.", Assisted "Weight is assistance, so a higher number is easier."
 - Unilateral: a toggle, footer "Left and right reps are logged separately."
