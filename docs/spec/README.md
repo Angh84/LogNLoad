@@ -120,7 +120,6 @@ Settled in other files: the minimum iOS ([Platform](#platform)), normal auto-loc
 
 Points the assembly found undecided. Each is marked **Open** where it applies.
 
-- [What do the logging and Library screens do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/20)
 - [What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)
 
 ## Lifecycle of this spec

@@ -26,8 +26,7 @@ How a Workout starts, is logged, finishes or is discarded, survives interruption
 
 - Completing a Set sets `completedAt` to the tap time and keeps the values it has. The Set is edited in place, so no target values remain.
 - Undoing a completion clears `completedAt`. The values stay and the Set is a target again. No confirm.
-- Add Set appends a target Working Set with the `weight`, `reps`, `repsLeft` and `repsRight` of the Entry's last Working Set.
-  - **Open** ([What do the logging and Library screens do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/20)): the values when the Entry has no Working Set.
+- Add Set appends a target Working Set with the `weight`, `reps`, `repsLeft` and `repsRight` of the Entry's last Working Set. With no Working Set, it copies the Entry's last Set, as a Working Set. With no Sets, it is 0 kg x 0 reps.
 - Until Finish, Sets and Entries can be added, removed, reordered and edited at any time.
 
 ### Finish
@@ -44,8 +43,8 @@ How a Workout starts, is logged, finishes or is discarded, survives interruption
 
 ### Stale Workout
 
-- When the app opens with an Active Workout whose last `completedAt` (or `startedAt`, when no Set is completed) is more than 3 hours ago, it asks to finish at the last Completed Set, resume, or discard.
-  - **Open** ([What do the logging and Library screens do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/20)): whether returning from the background counts as opening.
+- When the app launches or returns from the background with an Active Workout whose last activity is more than 3 hours ago, it asks to finish at the last Completed Set, resume, or discard.
+- Last activity is the latest of the last `completedAt`, `startedAt` and the last Resume tap on this prompt. The Resume tap is kept in memory only, never stored, so a relaunch soon after Resume asks again.
 - Finishing from the stale prompt uses the last Completed Set's `completedAt` as the end time and the [Finish](#finish) rules.
 - With zero Completed Sets the choices are resume or discard.
 
@@ -94,10 +93,11 @@ Swap and merge combine when Entry X's Exercise becomes Exercise Y and the same W
 - Undoing the only completion in the Active Workout, then tapping Finish: there are zero Completed Sets, so Finish offers to discard.
 - An Entry whose Sets were all completed, then all un-completed, is dropped on Finish along with its note.
 - A Prefilled Exercise whose Last Performance Workout is then deleted or edited keeps the Sets it copied.
+- Resuming a stale Workout, then leaving the app in the background for more than 3 more hours without completing a Set: the prompt asks again on return.
 - Resuming a stale Workout and then tapping Finish: the last Completed Set is more than 15 minutes old, so the end-time choice appears with the last Set's time as the default.
 - Moving a finished Workout's start later than some Sets' `completedAt`, or its end earlier: allowed. Those Sets keep times outside the Workout.
 - Editing a finished Workout's `startedAt` can change which Workout is "most recent" for an Exercise, and with it that Exercise's Last Performance.
 - Removing every Set while editing, then Done: the Workout is deleted, from Health too.
 - Merging Exercise X into Y while the Active Workout holds X: its Entry for X becomes Y's, target Sets included, combined if it also holds Y ([exercise-library-screens.md](exercise-library-screens.md#merge)).
 
-Sources: [How does a Workout start, finish, and survive interruption?](https://github.com/Angh84/LogNLoad/issues/7), [What does a Set record beyond reps and weight?](https://github.com/Angh84/LogNLoad/issues/6), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [How does the logging screen flow?](https://github.com/Angh84/LogNLoad/issues/12), [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13)
+Sources: [How does a Workout start, finish, and survive interruption?](https://github.com/Angh84/LogNLoad/issues/7), [What does a Set record beyond reps and weight?](https://github.com/Angh84/LogNLoad/issues/6), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [How does the logging screen flow?](https://github.com/Angh84/LogNLoad/issues/12), [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13), [What do the logging and Library screens do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/20)
