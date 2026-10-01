@@ -11,7 +11,7 @@ The app's structure: tabs, the pinned Workout bar, what launch shows, the loggin
 
 - A bar pinned above the tab bar on both tabs (`tabViewBottomAccessory`).
 - With no Active Workout it is "Start Workout".
-- During an Active Workout it shows the current Exercise, a status line and the elapsed timer. Tapping it expands the logging cover.
+- During an Active Workout it shows the current Exercise, a status line and the [elapsed timer](README.md#display-formats). Tapping it expands the logging cover.
 - The status line is the card's own heading ([logging-screen.md](logging-screen.md#set-loop)): "Set n of m" or "Warm-up" for the current Set, or "All N Sets done", "All Sets done" or "No Sets" when the current Entry has no target Set left.
 - With no Exercise Entries it shows "No Exercises yet" and the elapsed timer.
 

@@ -99,6 +99,7 @@ Turning this build order into build issues is the next effort after the spec map
 - Dark only, forced app-wide (`UIUserInterfaceStyle` = `Dark` in Info.plist). No light mode and no override.
 - System semantic colors, plus one app accent color for primary actions (Complete, Start Workout, Finish) and selection (chips, week-strip dots). The hue is chosen during the build. It must meet WCAG AA contrast (4.5:1) for text on the accent and for the accent on the dark backgrounds.
 - Launch screen: a plain black background, no logo (`UILaunchScreen` in Info.plist).
+- Discard, Remove and Delete buttons use the destructive role (red) in every prompt and confirm.
 
 **Text and accessibility**
 - System text styles everywhere, so Dynamic Type scales all text.
@@ -116,11 +117,43 @@ Turning this build order into build issues is the next effort after the spec map
 
 Settled in other files: the minimum iOS ([Platform](#platform)), normal auto-lock during a Workout ([logging-screen.md](logging-screen.md#set-loop)), no Settings screen ([navigation.md](navigation.md#tabs)).
 
-## Open
+## Display formats
 
-Points the assembly found undecided. Each is marked **Open** where it applies.
+How values are written wherever they appear. Region-dependent parts follow [Language and formats](#app-wide-conventions).
 
-- [What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)
+**Weight**
+- Up to 2 decimals, trailing zeros dropped, with the Region's decimal separator: "30 kg", "62.5 kg", "61.25 kg".
+
+**One Set**
+- Its weight, then "x", then its reps. In the app, "x" is the multiplication sign (U+00D7); this spec writes "x".
+- Loaded: "62.5 kg x 10".
+- Bodyweight: "BW x 12" at 0 kg, "BW+10 kg x 8" with added load.
+- Assisted: "BW-30 kg x 8", and "BW x 8" at 0 kg.
+- Dumbbell and Kettlebell: the stored per-implement weight, with nothing added ("24 kg x 10").
+- Unilateral reps: left, then right, always both, also when equal: "10/9", "10/10".
+- Used as it is in the Sets log rows and the Workout detail's expanded Sets.
+
+**Compact Set summary**
+- The Sets in order. Consecutive Sets with the same weight and the same Warm-up status share one group: the weight once, then the reps ("62.5 kg x 10, 9, 8"). Each Warm-up group starts with "W". Groups are joined with " / ".
+- Never re-sorted: a weight that comes back after another starts a new group ("60 kg x 10 / 62.5 kg x 8 / 60 kg x 10"), and a Warm-up Set logged after Working Sets shows where it was.
+- No RIR and no notes.
+- Examples: "W 20 kg x 10, 10 / W 40 kg x 5 / 62.5 kg x 10, 9, 8", "20 kg x 10/9, 9/9", "BW x 12, 10 / BW+5 kg x 8".
+- Wraps in full on the Workout detail and the Exercise page.
+
+**Last Performance line**
+- The Library row and the Exercise picker row: "<date>: " and the compact Set summary of its Working Sets, e.g. "28 Sep: 62.5 kg x 10, 9, 8".
+- When all its Sets are Warm-up Sets: the summary of all of them ("28 Sep: W 20 kg x 10, 10").
+- No Last Performance: "Not logged yet".
+- The date: day and abbreviated month, plus the year when it isn't the current year.
+- One line, truncated at the end with "...".
+
+**Durations**
+- "45 min", "1 h 10 min", "2 h" on every screen. Fixed strings, not `Duration.UnitsFormatStyle`.
+- Computed from the start and end times each truncated to the minute, so a duration always matches the times shown next to it ("17:30 - 18:40" is "1 h 10 min").
+
+**Elapsed timer**
+- The logging nav bar and the pinned bar: "m:ss", then "h:mm:ss" from an hour ("12:04", "1:02:03"), counting from `startedAt`. Past 24 h the hours keep counting.
+- `Text(timerInterval:countsDown: false)`, which renders this format and updates by itself.
 
 ## Lifecycle of this spec
 
@@ -128,4 +161,4 @@ Points the assembly found undecided. Each is marked **Open** where it applies.
 - When v1 ships, this README is marked "Frozen at v1". From then on the code, [CONTEXT.md](../../CONTEXT.md) and the ADRs are the truth, and later features get their own map.
 - [starter-library.md](starter-library.md) holds the initial seed content. Once the seed source exists in code, that source wins.
 
-Sources: [LogNLoad v1 spec](https://github.com/Angh84/LogNLoad/issues/1), [What shape does the v1 spec take, and where does it live?](https://github.com/Angh84/LogNLoad/issues/15), [Which storage stack and minimum iOS version?](https://github.com/Angh84/LogNLoad/issues/8), [What can a HealthKit strength workout carry, and what needs a paid account?](https://github.com/Angh84/LogNLoad/issues/4), [Which future features must the v1 data model leave room for?](https://github.com/Angh84/LogNLoad/issues/2), [What app-wide conventions does v1 follow?](https://github.com/Angh84/LogNLoad/issues/17), [What does the data layer do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/19)
+Sources: [LogNLoad v1 spec](https://github.com/Angh84/LogNLoad/issues/1), [What shape does the v1 spec take, and where does it live?](https://github.com/Angh84/LogNLoad/issues/15), [Which storage stack and minimum iOS version?](https://github.com/Angh84/LogNLoad/issues/8), [What can a HealthKit strength workout carry, and what needs a paid account?](https://github.com/Angh84/LogNLoad/issues/4), [Which future features must the v1 data model leave room for?](https://github.com/Angh84/LogNLoad/issues/2), [What app-wide conventions does v1 follow?](https://github.com/Angh84/LogNLoad/issues/17), [What does the data layer do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/19), [What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)

@@ -22,8 +22,7 @@ Prototype: [exercise-library.prototype.html](../../prototypes/exercise-library/e
 - One section per Body Area (Chest, Shoulders, Back, Arms, Core, Legs), in that order, headed with its count. A-Z inside each. Empty sections are hidden.
 - An Exercise sits in the section of its [Body Area placement](data-model.md#derived-never-stored).
 - Archived Exercises are not listed.
-- A row: the name; then its Last Performance from Working Sets only ("28 Sep: 62.5 kg x 10, 9, 8"), or "Not logged yet"; and a small green dot while it is in the Active Workout.
-  - **Open** ([What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)): the row when Last Performance has only Warm-up Sets.
+- A row: the name; then its [Last Performance line](README.md#display-formats) ("28 Sep: 62.5 kg x 10, 9, 8", or "Not logged yet"); and a small green dot while it is in the Active Workout.
 - Tapping a row opens its [Exercise page](#exercise-page). Rows have no swipe actions.
 - At the bottom: an "Archived N >" row (hidden when there are none), then "N Exercises".
 
@@ -47,7 +46,7 @@ Prototype: [exercise-library.prototype.html](../../prototypes/exercise-library/e
 - The Exercise note.
 - A Muscle Groups card: one bar per Muscle Emphasis, in [display order](data-model.md#derived-never-stored), each with its weight.
 - Tiles: Workouts (finished Workouts only), Last (date), First (date).
-- History: its finished Workouts, newest first, in month sections. A row: a date block, the [Workout title](history-screens.md#workout-title), and a compact Set summary including Warm-up Sets ("W 30 kg x 10 / 62.5 kg x 10, 9, 8"). The Active Workout is not listed. RIR and Set notes stay on the Workout detail.
+- History: its finished Workouts, newest first, in month sections. A row: a date block, the [Workout title](history-screens.md#workout-title), and a [compact Set summary](README.md#display-formats) including Warm-up Sets ("W 30 kg x 10 / 62.5 kg x 10, 9, 8"). The Active Workout is not listed. RIR and Set notes stay on the Workout detail.
 - Tapping a history row pushes that Workout's [detail](history-screens.md#workout-detail), with its Edit and Delete Workout rules.
 - Empty history: "Not in a finished Workout yet. Its Sets show up here once you finish one."
 
@@ -107,4 +106,4 @@ Merging X into Y, from X's edit form:
 - Merging X, which is in the Active Workout, into Y: the Active Workout's Entry for X becomes Y's, target Sets included. Prefill already copied is untouched.
 - Renaming a seed in the app lasts only until its source entry changes ([starter-library.md](starter-library.md#seeding-lifecycle)).
 
-Sources: [How do the Exercise Library screens look?](https://github.com/Angh84/LogNLoad/issues/16), [What does an Exercise record?](https://github.com/Angh84/LogNLoad/issues/5), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [What goes in the starter Exercise Library?](https://github.com/Angh84/LogNLoad/issues/9), [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13), [What do the logging and Library screens do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/20)
+Sources: [How do the Exercise Library screens look?](https://github.com/Angh84/LogNLoad/issues/16), [What does an Exercise record?](https://github.com/Angh84/LogNLoad/issues/5), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [What goes in the starter Exercise Library?](https://github.com/Angh84/LogNLoad/issues/9), [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13), [What do the logging and Library screens do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/20), [What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)
