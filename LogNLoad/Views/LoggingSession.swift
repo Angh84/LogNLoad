@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import SwiftData
+import SwiftUI
 
 /// The logging screen's state for the Active Workout. The current Entry and Set live only here,
 /// never in the store, so a relaunch reopens on the first target Set.
@@ -81,6 +82,103 @@ final class LoggingSession {
     /// Sets `reps`, `repsLeft` or `repsRight` of the current Set, never below 0. Keeps `completedAt`.
     func changeReps(_ reps: ReferenceWritableKeyPath<WorkoutSet, Int>, to count: Int) {
         currentSet?[keyPath: reps] = max(count, 0)
+        save()
+    }
+
+    /// The "Warm-up" chip. A Working Set whose RIR panel is up is no longer asked once it is a Warm-up Set.
+    func toggleWarmUp() {
+        guard let currentSet else { return }
+        currentSet.setWarmUp(!currentSet.isWarmUp)
+        if currentSet.isWarmUp { isAskingRIR = false }
+        save()
+    }
+
+    /// The RIR chip on a Completed Working Set, where nil clears it.
+    func changeRIR(to rir: Int?) {
+        guard let currentSet, currentSet.isWorkingSet else { return }
+        currentSet.rir = rir
+        save()
+    }
+
+    func changeWorkoutName(to text: String) {
+        workout.name = trimmed(text)
+        save()
+    }
+
+    func changeWorkoutNote(to text: String) {
+        workout.note = trimmed(text)
+        save()
+    }
+
+    /// The Entry note, from the Exercise "..." menu.
+    func changeNote(to text: String, of entry: ExerciseEntry) {
+        entry.note = trimmed(text)
+        save()
+    }
+
+    /// The Set note, from the "Set note" chip.
+    func changeNote(to text: String, of set: WorkoutSet) {
+        set.note = trimmed(text)
+        save()
+    }
+
+    /// "Add Set": appends a target Working Set to the current Entry and makes it current.
+    func addSet() {
+        guard let currentEntry else { return }
+        let set = currentEntry.addSet()
+        save()
+        select(set)
+    }
+
+    /// Deletes a Set of the current Entry. When it was current, the Entry's first target Set becomes current.
+    func delete(_ set: WorkoutSet) {
+        let wasCurrent = set == currentSet
+        workout.modelContext?.delete(set)
+        save()
+        if wasCurrent { moveToFirstTargetSet() }
+    }
+
+    /// "Remove Exercise" removes an Entry without Completed Sets at once. One with Completed Sets is returned
+    /// for the "Remove <name>?" confirm, which then calls `remove(_:)`.
+    func requestRemoval(of entry: ExerciseEntry) -> ExerciseEntry? {
+        guard !entry.hasCompletedSet else { return entry }
+        remove(entry)
+        return nil
+    }
+
+    /// Deletes the Entry and its Sets. When it was current, the next Entry becomes current,
+    /// else the previous one, else the empty Workout.
+    func remove(_ entry: ExerciseEntry) {
+        let entries = workout.sortedEntries
+        guard let index = entries.firstIndex(of: entry) else { return }
+        let neighbour = index + 1 < entries.count ? entries[index + 1] : index > 0 ? entries[index - 1] : nil
+        let wasCurrent = entry == currentEntry
+        workout.modelContext?.delete(entry)
+        save()
+        guard wasCurrent else { return }
+        if let neighbour {
+            select(neighbour)
+        } else {
+            currentEntry = nil
+            currentSet = nil
+            isAskingRIR = false
+        }
+    }
+
+    /// Drag to reorder in the Sets log: renumbers the current Entry's Sets in their new order.
+    func moveSets(fromOffsets source: IndexSet, toOffset destination: Int) {
+        guard let currentEntry else { return }
+        var sets = currentEntry.sortedSets
+        sets.move(fromOffsets: source, toOffset: destination)
+        for (order, set) in sets.enumerated() { set.order = order }
+        save()
+    }
+
+    /// Drag to reorder in the overview sheet: renumbers the Entries in their new order.
+    func moveEntries(fromOffsets source: IndexSet, toOffset destination: Int) {
+        var entries = workout.sortedEntries
+        entries.move(fromOffsets: source, toOffset: destination)
+        for (order, entry) in entries.enumerated() { entry.order = order }
         save()
     }
 

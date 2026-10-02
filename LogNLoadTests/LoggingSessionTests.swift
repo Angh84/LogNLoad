@@ -272,6 +272,196 @@ struct LoggingSessionTests {
         #expect(stored.reps == 8)
     }
 
+    // MARK: Shaping the Workout
+
+    @Test func addSetMakesTheNewTargetSetCurrentAndIsSaved() throws {
+        let bench = entry("Bench", true)
+        let session = LoggingSession(workout: workout)
+
+        session.addSet()
+
+        let added = try #require(bench.sortedSets.last)
+        #expect(bench.sortedSets.count == 2)
+        #expect(session.currentSet == added)
+        #expect(added.isTarget)
+        let fresh = ModelContext(container)
+        #expect(try fresh.fetchCount(FetchDescriptor<WorkoutSet>()) == 2)
+    }
+
+    @Test func deletingTheCurrentSetGoesToTheFirstTargetSet() throws {
+        let bench = entry("Bench", true, false, false)
+        let session = LoggingSession(workout: workout)
+        let third = bench.sortedSets[2]
+        session.select(third)
+
+        session.delete(third)
+
+        #expect(bench.sortedSets.count == 2)
+        #expect(session.currentSet == bench.sortedSets[1])
+        let fresh = ModelContext(container)
+        #expect(try fresh.fetchCount(FetchDescriptor<WorkoutSet>()) == 2)
+    }
+
+    @Test func deletingTheLastTargetSetShowsTheNoTargetState() {
+        let bench = entry("Bench", true, false)
+        let session = LoggingSession(workout: workout)
+
+        session.delete(bench.sortedSets[1])
+
+        #expect(session.currentSet == nil)
+        #expect(session.heading == "All 1 Set done")
+    }
+
+    @Test func deletingAnotherSetKeepsTheCurrentOne() {
+        let bench = entry("Bench", true, false)
+        let session = LoggingSession(workout: workout)
+        let current = bench.sortedSets[1]
+
+        session.delete(bench.sortedSets[0])
+
+        #expect(session.currentSet == current)
+    }
+
+    @Test func removingTheCurrentEntryMakesTheNextOneCurrentAndDeletesItsSets() throws {
+        let squat = entry("Squat", true)
+        let bench = entry("Bench", true, false)
+        let row = entry("Row", false)
+        let session = LoggingSession(workout: workout)
+        session.select(bench)
+
+        session.remove(bench)
+
+        #expect(workout.sortedEntries == [squat, row])
+        #expect(session.currentEntry == row)
+        #expect(session.currentSet == row.sortedSets.first)
+        let fresh = ModelContext(container)
+        #expect(try fresh.fetchCount(FetchDescriptor<WorkoutSet>()) == 2)
+    }
+
+    @Test func removingTheLastEntryMakesThePreviousOneCurrent() {
+        let squat = entry("Squat", true)
+        let bench = entry("Bench", false)
+        let session = LoggingSession(workout: workout)
+        session.select(bench)
+
+        session.remove(bench)
+
+        #expect(session.currentEntry == squat)
+        #expect(session.currentSet == nil)
+    }
+
+    @Test func removingTheOnlyEntryLeavesTheEmptyWorkout() {
+        let bench = entry("Bench", false)
+        let session = LoggingSession(workout: workout)
+
+        session.remove(bench)
+
+        #expect(workout.sortedEntries.isEmpty)
+        #expect(session.currentEntry == nil)
+        #expect(session.heading == nil)
+    }
+
+    @Test func removeExerciseAsksOnlyWhenTheEntryHasCompletedSets() {
+        let squat = entry("Squat", true, false)
+        let bench = entry("Bench", false, false)
+        let session = LoggingSession(workout: workout)
+
+        #expect(session.requestRemoval(of: squat) == squat)
+        #expect(workout.sortedEntries.contains(squat))
+
+        #expect(session.requestRemoval(of: bench) == nil)
+        #expect(!workout.sortedEntries.contains(bench))
+    }
+
+    @Test func removingAnotherEntryKeepsTheCurrentOne() {
+        let squat = entry("Squat", false)
+        let bench = entry("Bench", false)
+        let session = LoggingSession(workout: workout)
+
+        session.remove(bench)
+
+        #expect(session.currentEntry == squat)
+        #expect(session.currentSet == squat.sortedSets.first)
+    }
+
+    @Test func draggingASetReordersTheEntrysSetsAndIsSaved() throws {
+        let bench = entry("Bench", true, false, false)
+        let session = LoggingSession(workout: workout)
+        let sets = bench.sortedSets
+
+        session.moveSets(fromOffsets: [2], toOffset: 0)
+
+        #expect(bench.sortedSets == [sets[2], sets[0], sets[1]])
+        let fresh = ModelContext(container)
+        let stored = try fresh.fetch(FetchDescriptor<WorkoutSet>(sortBy: [SortDescriptor(\.order)]))
+        #expect(stored.map(\.id) == [sets[2], sets[0], sets[1]].map(\.id))
+    }
+
+    @Test func draggingAnEntryReordersTheWorkoutsEntries() {
+        let squat = entry("Squat", true)
+        let bench = entry("Bench", true)
+        let row = entry("Row", false)
+        let session = LoggingSession(workout: workout)
+
+        session.moveEntries(fromOffsets: [0], toOffset: 3)
+
+        #expect(workout.sortedEntries == [bench, row, squat])
+    }
+
+    @Test func markingASetAsWarmUpClearsItsRIRAndMarkingItWorkingLeavesItEmpty() throws {
+        let bench = entry("Bench", true)
+        let set = bench.sortedSets[0]
+        set.rir = 2
+        let session = LoggingSession(workout: workout)
+        session.select(set)
+
+        session.toggleWarmUp()
+        #expect(set.isWarmUp)
+        #expect(set.rir == nil)
+
+        session.toggleWarmUp()
+        #expect(!set.isWarmUp)
+        #expect(set.rir == nil)
+        #expect(set.completedAt == Self.started)
+        let fresh = ModelContext(container)
+        #expect(try fresh.fetch(FetchDescriptor<WorkoutSet>()).first?.isWarmUp == false)
+    }
+
+    @Test func theRIRChipChangesACompletedWorkingSetsRIRButNeverAWarmUpSets() {
+        let bench = entry("Bench", true, true)
+        bench.sortedSets[1].isWarmUp = true
+        let session = LoggingSession(workout: workout)
+
+        session.select(bench.sortedSets[0])
+        session.changeRIR(to: 4)
+        session.changeRIR(to: nil)
+        #expect(bench.sortedSets[0].rir == nil)
+        session.changeRIR(to: 1)
+        #expect(bench.sortedSets[0].rir == 1)
+
+        session.select(bench.sortedSets[1])
+        session.changeRIR(to: 3)
+        #expect(bench.sortedSets[1].rir == nil)
+    }
+
+    @Test func namesAndNotesTypedWhileLoggingAreStoredTrimmed() throws {
+        let bench = entry("Bench", false)
+        let set = bench.sortedSets[0]
+        let session = LoggingSession(workout: workout)
+
+        session.changeWorkoutName(to: "  Push day ")
+        session.changeWorkoutNote(to: " \n ")
+        session.changeNote(to: " Wide grip\n", of: bench)
+        session.changeNote(to: "  Paused  ", of: set)
+
+        let fresh = ModelContext(container)
+        let storedWorkout = try #require(try fresh.fetch(FetchDescriptor<Workout>()).first)
+        #expect(storedWorkout.name == "Push day")
+        #expect(storedWorkout.note == nil)
+        #expect(try fresh.fetch(FetchDescriptor<ExerciseEntry>()).first?.note == "Wide grip")
+        #expect(try fresh.fetch(FetchDescriptor<WorkoutSet>()).first?.note == "Paused")
+    }
+
     // MARK: Stale Workout
 
     static let threeHours: TimeInterval = 3 * 3600
