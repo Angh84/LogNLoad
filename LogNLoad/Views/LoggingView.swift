@@ -139,6 +139,44 @@ struct LoggingView: View {
 }
 
 extension View {
+    /// Shows `message` at the top for 2 seconds, then clears it.
+    func toast(_ message: Binding<String?>) -> some View {
+        overlay(alignment: .top) {
+            VStack {
+                if let text = message.wrappedValue {
+                    Text(text)
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(.thinMaterial, in: .capsule)
+                        .padding(.top, 8)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .animation(.default, value: message.wrappedValue)
+        }
+        .task(id: message.wrappedValue) {
+            guard let shown = message.wrappedValue else { return }
+            try? await Task.sleep(for: .seconds(2))
+            // A newer message cancels this timer and stays; leaving the screen cancels it and clears this one.
+            if message.wrappedValue == shown { message.wrappedValue = nil }
+        }
+    }
+
+    /// The "Delete this Workout?" confirm, from a History row swipe and the Workout detail. Set `workout` to ask.
+    func deleteWorkoutConfirm(_ workout: Binding<Workout?>, onDelete: @escaping (Workout) -> Void) -> some View {
+        alert(
+            "Delete this Workout?",
+            isPresented: Binding { workout.wrappedValue != nil } set: { if !$0 { workout.wrappedValue = nil } },
+            presenting: workout.wrappedValue
+        ) { workout in
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) { onDelete(workout) }
+        } message: { _ in
+            Text("It's removed from history and from Health. This can't be undone.")
+        }
+    }
+
     /// The "Discard Workout?" confirm, from the overview sheet and the stale prompt. N counts the Completed Sets,
     /// Warm-up Sets included.
     func discardWorkoutConfirm(isPresented: Binding<Bool>, workout: Workout, onDiscard: @escaping () -> Void) -> some View {

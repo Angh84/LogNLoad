@@ -223,4 +223,56 @@ struct DisplayFormatTests {
     @Test func rirFourReadsEasy() {
         #expect([0, 1, 2, 3, 4].map(DisplayFormat.rir) == ["0", "1", "2", "3", "Easy"])
     }
+
+    // MARK: History
+
+    /// Weeks start on Monday, as in a British or Swedish Region.
+    static let mondayCalendar: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = british
+        calendar.firstWeekday = 2
+        return calendar
+    }()
+
+    func date(_ year: Int, _ month: Int, _ day: Int, _ hour: Int = 17, _ minute: Int = 0) -> Date {
+        DateComponents(calendar: Self.mondayCalendar, year: year, month: month, day: day, hour: hour, minute: minute).date!
+    }
+
+    func heading(_ start: Date) -> String {
+        DisplayFormat.weekHeading(start, now: date(2026, 10, 2), locale: Self.british, calendar: Self.mondayCalendar)
+    }
+
+    @Test func theCurrentAndPreviousWeeksAreNamed() {
+        #expect(heading(date(2026, 9, 28, 0)) == "This week")
+        #expect(heading(date(2026, 9, 21, 0)) == "Last week")
+    }
+
+    /// `Date.IntervalFormatStyle` writes shared parts once and sets the dash between thin spaces.
+    @Test func olderWeeksAreTheirDateRangeWithTheYearWhenAnyDayIsInAnotherYear() {
+        #expect(heading(date(2026, 9, 14, 0)) == "14\u{2009}\u{2013}\u{2009}20 Sep")
+        #expect(heading(date(2026, 8, 31, 0)) == "31 Aug\u{2009}\u{2013}\u{2009}6 Sep")
+        #expect(heading(date(2025, 9, 15, 0)) == "15\u{2009}\u{2013}\u{2009}21 Sep 2025")
+        #expect(heading(date(2025, 12, 29, 0)) == "29 Dec 2025\u{2009}\u{2013}\u{2009}4 Jan 2026")
+    }
+
+    @Test func workoutsAreGroupedIntoWeeksNewestFirst() {
+        let sunday = Workout(startedAt: date(2026, 9, 27), endedAt: date(2026, 9, 27, 18))
+        let monday = Workout(startedAt: date(2026, 9, 21), endedAt: date(2026, 9, 21, 18))
+        let thisMonday = Workout(startedAt: date(2026, 9, 28), endedAt: date(2026, 9, 28, 18))
+
+        let weeks = DisplayFormat.historyWeeks([thisMonday, sunday, monday], calendar: Self.mondayCalendar)
+
+        #expect(weeks.map(\.start) == [date(2026, 9, 28, 0), date(2026, 9, 21, 0)])
+        #expect(weeks.map(\.workouts) == [[thisMonday], [sunday, monday]])
+    }
+
+    @Test func aHistoryLineShowsTheStartDurationExercisesAndWorkingSets() {
+        let workout = Workout(startedAt: date(2026, 9, 30, 17, 30), endedAt: date(2026, 9, 30, 18, 40))
+        context.insert(workout)
+        let entry = ExerciseEntry(workout: workout, exercise: exercise(), order: 0)
+        _ = WorkoutSet(entry: entry, order: 0, isWarmUp: true, completedAt: .now)
+        _ = WorkoutSet(entry: entry, order: 1, completedAt: .now)
+
+        #expect(DisplayFormat.historyLine(workout, locale: Self.british, calendar: Self.mondayCalendar) == "17:30, 1 h 10 min \u{2013} 1 Exercise, 1 Set")
+    }
 }

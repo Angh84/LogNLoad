@@ -49,6 +49,23 @@ extension Workout {
         (entries ?? []).sorted { $0.order < $1.order }
     }
 
+    /// Its name, else its first two Exercise names and "+N" for the rest.
+    var title: String {
+        if let name { return name }
+        let names = sortedEntries.compactMap(\.exercise?.name)
+        let title = names.prefix(2).joined(separator: ", ")
+        return names.count > 2 ? "\(title) +\(names.count - 2)" : title
+    }
+
+    /// The Set count on the History screens, which leaves out Warm-up Sets.
+    var workingSetCount: Int {
+        sortedEntries.flatMap(\.sortedSets).count(where: \.isWorkingSet)
+    }
+
+    var warmUpSetCount: Int {
+        sortedEntries.flatMap(\.sortedSets).count(where: \.isWarmUp)
+    }
+
     var isHealthPending: Bool {
         !isActive && healthConfirmedVersion != healthWriteCounter
     }
@@ -99,6 +116,13 @@ extension Workout {
             }
         }
         endedAt = end
+        try context.save()
+    }
+
+    /// Delete Workout: hard-deletes a finished Workout, its Entries and its Sets. No trash, no undo.
+    func delete() throws {
+        guard let context = modelContext else { return }
+        context.delete(self)
         try context.save()
     }
 

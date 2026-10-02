@@ -76,6 +76,40 @@ enum DisplayFormat {
         return (days == 0 ? duration(from: then, to: now) : count(days, "day")) + " ago"
     }
 
+    /// The History list's week sections: finished Workouts, newest first, grouped by the calendar's week, whose
+    /// first weekday follows the Region.
+    static func historyWeeks(_ workouts: [Workout], calendar: Calendar = .current) -> [(start: Date, workouts: [Workout])] {
+        var weeks: [(start: Date, workouts: [Workout])] = []
+        for workout in workouts {
+            guard let startedAt = workout.startedAt, let start = calendar.dateInterval(of: .weekOfYear, for: startedAt)?.start else { continue }
+            if weeks.last?.start == start {
+                weeks[weeks.count - 1].workouts.append(workout)
+            } else {
+                weeks.append((start, [workout]))
+            }
+        }
+        return weeks
+    }
+
+    /// "This week", "Last week", else the range ("14-20 Sep"), with the year when any day is outside the current one.
+    static func weekHeading(_ start: Date, now: Date = .now, locale: Locale = .current, calendar: Calendar = .current) -> String {
+        let thisWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start
+        if start == thisWeek { return "This week" }
+        if let thisWeek, start == calendar.date(byAdding: .weekOfYear, value: -1, to: thisWeek) { return "Last week" }
+        let end = calendar.date(byAdding: .day, value: 6, to: start) ?? start
+        var style = Date.IntervalFormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone).day().month(.abbreviated)
+        if ![start, end].allSatisfy({ calendar.isDate($0, equalTo: now, toGranularity: .year) }) { style = style.year() }
+        return (start..<end).formatted(style)
+    }
+
+    /// "17:30, 1 h 10 min - 5 Exercises, 14 Sets": the start time, duration, Exercise count and Working Set count.
+    static func historyLine(_ workout: Workout, locale: Locale = .current, calendar: Calendar = .current) -> String {
+        guard let start = workout.startedAt, let end = workout.endedAt else { return "" }
+        let time = start.formatted(Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone).hour().minute())
+        return "\(time), \(duration(from: start, to: end)) \u{2013} "
+            + "\(count(workout.sortedEntries.count, "Exercise")), \(count(workout.workingSetCount, "Set"))"
+    }
+
     /// The weight stepper's label, by Load Type, then by weight convention.
     static func weightLabel(for exercise: Exercise) -> String {
         switch (exercise.loadType, exercise.equipment) {

@@ -12,14 +12,14 @@ struct MainTabView: View {
     @State private var isLoggingExpanded = false
     @State private var tab = AppTab.history
     @State private var finishes = 0
+    /// The Workout just finished, for the History list to land on.
+    @State private var justFinished: UUID?
     @Namespace private var cover
 
     var body: some View {
         TabView(selection: $tab) {
             Tab("History", systemImage: "clock", value: .history) {
-                NavigationStack {
-                    Color.clear.navigationTitle("History")
-                }
+                HistoryView(justFinished: justFinished)
             }
             Tab("Exercises", systemImage: "dumbbell", value: .exercises) {
                 NavigationStack {
@@ -71,6 +71,7 @@ struct MainTabView: View {
     /// After Finish the cover closes onto History and the bar returns to "Start Workout".
     private func finished() {
         finishes += 1
+        justFinished = session?.workout.id
         tab = .history
         closeCover()
     }

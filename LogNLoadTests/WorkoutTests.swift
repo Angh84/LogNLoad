@@ -352,4 +352,54 @@ struct WorkoutTests {
         #expect(storedEntry.note == nil)
         #expect(storedSet.note == "felt heavy")
     }
+
+    // MARK: History
+
+    @Test func aNamedWorkoutIsTitledByItsName() {
+        let workout = Workout(startedAt: day(28), endedAt: day(28, 18), name: "Push day")
+        context.insert(workout)
+        entry("Squat", in: workout, true)
+
+        #expect(workout.title == "Push day")
+    }
+
+    @Test func anUnnamedWorkoutIsTitledByItsFirstTwoExercisesAndHowManyMore() {
+        let workout = Workout(startedAt: day(28), endedAt: day(28, 18))
+        context.insert(workout)
+        entry("Squat", in: workout, true)
+        #expect(workout.title == "Squat")
+
+        entry("Bench", in: workout, true)
+        #expect(workout.title == "Squat, Bench")
+
+        entry("Row", in: workout, true)
+        entry("Curl", in: workout, true)
+        #expect(workout.title == "Squat, Bench +2")
+    }
+
+    @Test func historyCountsWorkingSetsOnlyAndWarmUpsApart() {
+        let workout = Workout(startedAt: day(28), endedAt: day(28, 18))
+        context.insert(workout)
+        let squat = entry("Squat", in: workout, true, true, true)
+        squat.sortedSets[0].isWarmUp = true
+        let curl = entry("Curl", in: workout, true)
+        curl.sortedSets[0].isWarmUp = true
+
+        #expect(workout.workingSetCount == 2)
+        #expect(workout.warmUpSetCount == 2)
+    }
+
+    @Test func deletingAFinishedWorkoutRemovesItsEntriesAndSetsButKeepsTheExercises() throws {
+        let workout = Workout(startedAt: day(28), endedAt: day(28, 18))
+        context.insert(workout)
+        entry("Squat", in: workout, true, true)
+        try context.save()
+
+        try workout.delete()
+
+        let fresh = ModelContext(container)
+        #expect(try fresh.fetchCount(FetchDescriptor<Workout>()) == 0)
+        #expect(try fresh.fetchCount(FetchDescriptor<WorkoutSet>()) == 0)
+        #expect(try fresh.fetchCount(FetchDescriptor<Exercise>()) == 1)
+    }
 }
