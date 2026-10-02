@@ -1,2 +1,6 @@
 LogNLoad.xcodeproj/
 .DS_Store
+LogNLoadSim.xcodeproj/
+tools/sim/baseline.store
+tools/sim/Flows/*
+!tools/sim/Flows/Example.swift
