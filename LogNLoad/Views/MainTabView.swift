@@ -2,21 +2,26 @@ import SwiftData
 import SwiftUI
 
 struct MainTabView: View {
+    enum AppTab { case history, exercises }
+
     @Environment(\.modelContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
     @Query(filter: #Predicate<Workout> { $0.endedAt == nil }) private var activeWorkouts: [Workout]
     /// Kept while the cover is minimized, so expanding it keeps the current Entry and Set.
     @State private var session: LoggingSession?
     @State private var isLoggingExpanded = false
+    @State private var tab = AppTab.history
+    @State private var finishes = 0
     @Namespace private var cover
 
     var body: some View {
-        TabView {
-            Tab("History", systemImage: "clock") {
+        TabView(selection: $tab) {
+            Tab("History", systemImage: "clock", value: .history) {
                 NavigationStack {
                     Color.clear.navigationTitle("History")
                 }
             }
-            Tab("Exercises", systemImage: "dumbbell") {
+            Tab("Exercises", systemImage: "dumbbell", value: .exercises) {
                 NavigationStack {
                     Color.clear.navigationTitle("Exercises")
                 }
@@ -35,11 +40,15 @@ struct MainTabView: View {
         }
         .fullScreenCover(isPresented: $isLoggingExpanded) {
             if let session {
-                LoggingView(session: session)
+                LoggingView(session: session, onFinish: finished, onDiscard: closeCover)
                     .navigationTransition(.zoom(sourceID: "logging", in: cover))
             }
         }
+        .sensoryFeedback(.success, trigger: finishes)
         .onAppear(perform: openActiveWorkout)
+        .onChange(of: scenePhase) { oldPhase, _ in
+            if oldPhase == .background { askIfStale() }
+        }
     }
 
     /// A launch with an Active Workout opens the cover expanded.
@@ -47,6 +56,29 @@ struct MainTabView: View {
         guard session == nil, let workout = activeWorkouts.first else { return }
         session = LoggingSession(workout: workout)
         isLoggingExpanded = true
+        askIfStale()
+    }
+
+    /// On launch and on return from the background, a stale Workout expands the cover with the prompt on top,
+    /// its "N ago" counted from now also when it was already up.
+    private func askIfStale() {
+        let now = Date.now
+        guard let session, session.isStale(at: now) else { return }
+        session.stalePromptAt = now
+        isLoggingExpanded = true
+    }
+
+    /// After Finish the cover closes onto History and the bar returns to "Start Workout".
+    private func finished() {
+        finishes += 1
+        tab = .history
+        closeCover()
+    }
+
+    /// The session goes at once, so nothing renders the finished or deleted Workout's records.
+    private func closeCover() {
+        isLoggingExpanded = false
+        session = nil
     }
 
     private func startWorkout() {

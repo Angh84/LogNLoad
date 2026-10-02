@@ -32,6 +32,11 @@ extension ExerciseEntry {
         sortedSets.first(where: \.isTarget)
     }
 
+    /// Whether Finish keeps this Entry.
+    var hasCompletedSet: Bool {
+        sortedSets.contains { !$0.isTarget }
+    }
+
     /// "W" for a Warm-up Set; Working Sets are numbered from 1 in order.
     func label(of set: WorkoutSet) -> String {
         set.isWarmUp ? "W" : "\(workingSetNumber(of: set))"

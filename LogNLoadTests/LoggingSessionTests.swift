@@ -272,6 +272,39 @@ struct LoggingSessionTests {
         #expect(stored.reps == 8)
     }
 
+    // MARK: Stale Workout
+
+    static let threeHours: TimeInterval = 3 * 3600
+
+    @Test func aWorkoutWithoutCompletedSetsIsStaleThreeHoursAfterItsStart() {
+        entry("Bench", false)
+        let session = LoggingSession(workout: workout)
+
+        #expect(!session.isStale(at: Self.started.addingTimeInterval(Self.threeHours)))
+        #expect(session.isStale(at: Self.started.addingTimeInterval(Self.threeHours + 1)))
+    }
+
+    @Test func theLastCompletedSetCountsAsActivity() {
+        let bench = entry("Bench", true, true)
+        bench.sortedSets[1].completedAt = Self.tap
+        let session = LoggingSession(workout: workout)
+
+        #expect(!session.isStale(at: Self.tap.addingTimeInterval(Self.threeHours)))
+        #expect(session.isStale(at: Self.tap.addingTimeInterval(Self.threeHours + 1)))
+    }
+
+    @Test func resumingCountsAsActivityUntilTheSessionEnds() {
+        entry("Bench", true)
+        let session = LoggingSession(workout: workout)
+        let resumed = Self.started.addingTimeInterval(4 * 3600)
+
+        session.resume(at: resumed)
+
+        #expect(!session.isStale(at: resumed.addingTimeInterval(Self.threeHours)))
+        #expect(session.isStale(at: resumed.addingTimeInterval(Self.threeHours + 1)))
+        #expect(LoggingSession(workout: workout).isStale(at: resumed.addingTimeInterval(60)))
+    }
+
     @Test func theNextEntryFollowsTheCurrentOneAndTheLastHasNone() {
         let squat = entry("Squat", true)
         let bench = entry("Bench", true)

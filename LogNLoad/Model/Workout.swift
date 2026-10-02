@@ -65,8 +65,52 @@ extension Workout {
         if prefill.isEmpty { _ = WorkoutSet(entry: entry, order: 0) }
         return entry
     }
+
+    var completedSets: [WorkoutSet] {
+        sortedEntries.flatMap(\.sortedSets).filter { !$0.isTarget }
+    }
+
+    var targetSets: [WorkoutSet] {
+        sortedEntries.flatMap(\.sortedSets).filter(\.isTarget)
+    }
+
+    /// The latest `completedAt` of its Sets.
+    var lastCompletedAt: Date? {
+        completedSets.compactMap(\.completedAt).max()
+    }
+
+    /// The last Completed Set's time, when it is more than 15 minutes before the Finish tap: the user then picks
+    /// it (the default) or the tap time. Otherwise the Workout ends at the tap.
+    func endTimeChoice(at tap: Date) -> Date? {
+        guard let lastCompletedAt, tap.timeIntervalSince(lastCompletedAt) > 15 * 60 else { return nil }
+        return lastCompletedAt
+    }
+
+    /// Drops every target Set, then every Entry left without Sets, its note included, then sets `endedAt`.
+    /// A Workout with zero Completed Sets can't be finished.
+    func finish(at end: Date) throws {
+        guard !completedSets.isEmpty else { throw WorkoutError.noCompletedSets }
+        guard let context = modelContext else { return }
+        for entry in sortedEntries {
+            if entry.hasCompletedSet {
+                entry.sortedSets.filter(\.isTarget).forEach(context.delete)
+            } else {
+                context.delete(entry)
+            }
+        }
+        endedAt = end
+        try context.save()
+    }
+
+    /// Hard-deletes the Workout, its Entries and its Sets. Nothing reaches history or Health.
+    func discard() throws {
+        guard let context = modelContext else { return }
+        context.delete(self)
+        try context.save()
+    }
 }
 
 enum WorkoutError: Error {
     case activeWorkoutExists
+    case noCompletedSets
 }
