@@ -49,14 +49,31 @@ enum DisplayFormat {
 
     /// "45 min", "1 h 10 min", "2 h", from both times truncated to the minute so it matches the times shown.
     static func duration(from start: Date, to end: Date) -> String {
-        func minute(_ date: Date) -> Int { Int((date.timeIntervalSinceReferenceDate / 60).rounded(.down)) }
-        let minutes = minute(end) - minute(start)
-        let (hours, rest) = minutes.quotientAndRemainder(dividingBy: 60)
+        let (hours, rest) = minutes(from: start, to: end).quotientAndRemainder(dividingBy: 60)
         switch (hours, rest) {
         case (0, _): return "\(rest) min"
         case (_, 0): return "\(hours) h"
         default: return "\(hours) h \(rest) min"
         }
+    }
+
+    /// A prompt's `hh:mm`: "17:42" today, otherwise "Tue 22 Sep, 17:42".
+    static func time(_ date: Date, now: Date = .now, locale: Locale = .current, calendar: Calendar = .current) -> String {
+        let style = Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone)
+        let time = date.formatted(style.hour().minute())
+        guard !calendar.isDate(date, inSameDayAs: now) else { return time }
+        return date.formatted(style.weekday(.abbreviated).day().month(.abbreviated)) + ", " + time
+    }
+
+    /// "1 Set", "2 Sets": the noun is singular only for a count of 1.
+    static func count(_ count: Int, _ noun: String) -> String {
+        "\(count) \(noun)\(count == 1 ? "" : "s")"
+    }
+
+    /// "3 h 20 min ago" under 24 hours, then whole days: "1 day ago", "2 days ago".
+    static func ago(from then: Date, to now: Date) -> String {
+        let days = minutes(from: then, to: now) / (24 * 60)
+        return (days == 0 ? duration(from: then, to: now) : count(days, "day")) + " ago"
     }
 
     /// The weight stepper's label, by Load Type, then by weight convention.
@@ -82,6 +99,12 @@ enum DisplayFormat {
         case .bodyweight: kg == 0 ? "BW" : "BW+" + weight(kg, locale: locale)
         case .assisted: kg == 0 ? "BW" : "BW-" + weight(kg, locale: locale)
         }
+    }
+
+    /// Minutes between both times, each truncated to the minute.
+    private static func minutes(from start: Date, to end: Date) -> Int {
+        func minute(_ date: Date) -> Int { Int((date.timeIntervalSinceReferenceDate / 60).rounded(.down)) }
+        return minute(end) - minute(start)
     }
 
     private static func reps(of set: WorkoutSet, _ exercise: Exercise) -> String {

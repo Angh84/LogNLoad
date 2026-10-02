@@ -177,6 +177,39 @@ struct DisplayFormatTests {
         #expect(DisplayFormat.duration(from: time(17, 30, 59), to: time(18, 40, 1)) == "1 h 10 min")
     }
 
+    @Test func agoIsADurationUnderADay() {
+        #expect(DisplayFormat.ago(from: time(14, 10), to: time(17, 30)) == "3 h 20 min ago")
+        #expect(DisplayFormat.ago(from: time(17, 30), to: time(17, 45)) == "15 min ago")
+    }
+
+    @Test func agoIsWholeDaysFromADay() {
+        let before = time(17, 30)
+
+        #expect(DisplayFormat.ago(from: before, to: before.addingTimeInterval(24 * 3600)) == "1 day ago")
+        #expect(DisplayFormat.ago(from: before, to: before.addingTimeInterval(47 * 3600)) == "1 day ago")
+        #expect(DisplayFormat.ago(from: before, to: before.addingTimeInterval(48 * 3600)) == "2 days ago")
+    }
+
+    // MARK: Prompt times
+
+    @Test func aTimeTodayIsTheTimeAlone() {
+        #expect(DisplayFormat.time(time(17, 42), now: time(21, 5), locale: Self.british) == "17:42")
+    }
+
+    @Test func aTimeOnAnotherDayHasTheWeekdayDayAndMonth() {
+        let earlier = DateComponents(calendar: .current, year: 2026, month: 9, day: 22, hour: 17, minute: 42).date!
+
+        #expect(DisplayFormat.time(earlier, now: time(9, 0), locale: Self.british) == "Tue 22 Sep, 17:42")
+    }
+
+    // MARK: Counts
+
+    @Test func aNounAfterACountIsSingularOnlyForOne() {
+        #expect(DisplayFormat.count(1, "Set") == "1 Set")
+        #expect(DisplayFormat.count(0, "Exercise") == "0 Exercises")
+        #expect(DisplayFormat.count(3, "target Set") == "3 target Sets")
+    }
+
     // MARK: Labels
 
     @Test func theWeightLabelFollowsTheLoadTypeAndWeightConvention() {

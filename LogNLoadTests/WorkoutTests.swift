@@ -22,6 +22,18 @@ struct WorkoutTests {
         return exercise
     }
 
+    /// Adds an Entry with one Set per flag to `workout`; `true` makes a Completed Set at `day(30)`.
+    @discardableResult
+    func entry(_ name: String, in workout: Workout, note: String? = nil, _ completed: Bool...) -> ExerciseEntry {
+        let exercise = Exercise(name: name, equipment: .barbell, muscleEmphases: [MuscleEmphasis(muscleGroup: .quads, weight: 1)])
+        context.insert(exercise)
+        let entry = ExerciseEntry(workout: workout, exercise: exercise, order: workout.entries?.count ?? 0, note: note)
+        for (order, isCompleted) in completed.enumerated() {
+            _ = WorkoutSet(entry: entry, order: order, weight: 60, reps: 10, completedAt: isCompleted ? day(30) : nil)
+        }
+        return entry
+    }
+
     @Test func theActiveWorkoutIsTheOneWithoutAnEnd() throws {
         let finished = Workout(startedAt: day(28), endedAt: day(28, 18))
         let active = Workout(startedAt: day(30))
@@ -239,6 +251,84 @@ struct WorkoutTests {
         #expect(workout.add(bench) == entry)
         #expect(workout.sortedEntries == [entry])
         #expect(entry.sortedSets.count == 1)
+    }
+
+    // MARK: Finish
+
+    @Test func finishingDropsTargetSetsThenEntriesLeftWithoutSetsThenSetsTheEnd() throws {
+        let workout = try Workout.start(at: day(30), in: context)
+        let squat = entry("Squat", in: workout, true, false, true)
+        entry("Bench", in: workout, note: "Wide grip", false, false)
+        let row = entry("Row", in: workout, true)
+
+        try workout.finish(at: day(30, 18))
+
+        let fresh = ModelContext(container)
+        let stored = try #require(try fresh.fetch(FetchDescriptor<Workout>()).first)
+        #expect(stored.endedAt == day(30, 18))
+        #expect(stored.sortedEntries.map(\.id) == [squat.id, row.id])
+        #expect(stored.sortedEntries.map { $0.sortedSets.count } == [2, 1])
+        #expect(try fresh.fetch(FetchDescriptor<WorkoutSet>()).allSatisfy { $0.completedAt != nil })
+        #expect(try fresh.fetch(FetchDescriptor<ExerciseEntry>()).allSatisfy { $0.note == nil })
+    }
+
+    @Test func aWorkoutWithZeroCompletedSetsCantBeFinished() throws {
+        let workout = try Workout.start(at: day(30), in: context)
+        entry("Squat", in: workout, false, false)
+
+        #expect(throws: WorkoutError.noCompletedSets) {
+            try workout.finish(at: day(30, 18))
+        }
+        #expect(workout.isActive)
+        #expect(try context.fetchCount(FetchDescriptor<WorkoutSet>()) == 2)
+    }
+
+    @Test func finishingWithinFifteenMinutesOfTheLastCompletedSetEndsAtTheTap() throws {
+        let workout = try Workout.start(at: day(30), in: context)
+        let squat = entry("Squat", in: workout, true, true)
+        squat.sortedSets[1].completedAt = day(30, 18)
+
+        #expect(workout.endTimeChoice(at: day(30, 18).addingTimeInterval(15 * 60)) == nil)
+    }
+
+    @Test func finishingLaterOffersTheLatestCompletedSetsTime() throws {
+        let workout = try Workout.start(at: day(30), in: context)
+        let squat = entry("Squat", in: workout, true, false)
+        let bench = entry("Bench", in: workout, true)
+        bench.sortedSets[0].completedAt = day(30, 18)
+        squat.sortedSets[0].completedAt = day(30, 17).addingTimeInterval(600)
+
+        #expect(workout.endTimeChoice(at: day(30, 18).addingTimeInterval(15 * 60 + 1)) == day(30, 18))
+    }
+
+    @Test func aWorkoutStartedAfterFinishingOnePrefillsFromIt() throws {
+        let first = try Workout.start(at: day(29), in: context)
+        let squat = entry("Squat", in: first, true, true, false)
+        squat.sortedSets[1].weight = 70
+        try first.finish(at: day(29, 18))
+        let exercise = try #require(squat.exercise)
+
+        let second = try Workout.start(at: day(30), in: context)
+        let prefilled = second.add(exercise)
+
+        #expect(prefilled.sortedSets.map(\.weight) == [60, 70])
+        #expect(prefilled.sortedSets.allSatisfy { $0.isTarget })
+    }
+
+    // MARK: Discard
+
+    @Test func discardingDeletesTheWorkoutItsEntriesAndSetsButKeepsTheExercises() throws {
+        let workout = try Workout.start(at: day(30), in: context)
+        entry("Squat", in: workout, true, false)
+        entry("Bench", in: workout, false)
+
+        try workout.discard()
+
+        let fresh = ModelContext(container)
+        #expect(try fresh.fetchCount(FetchDescriptor<Workout>()) == 0)
+        #expect(try fresh.fetchCount(FetchDescriptor<ExerciseEntry>()) == 0)
+        #expect(try fresh.fetchCount(FetchDescriptor<WorkoutSet>()) == 0)
+        #expect(try fresh.fetchCount(FetchDescriptor<Exercise>()) == 2)
     }
 
     @Test func namesAndNotesAreStoredTrimmedAndEmptyAsNoValue() throws {

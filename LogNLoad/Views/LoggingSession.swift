@@ -14,6 +14,10 @@ final class LoggingSession {
     private(set) var isAskingRIR = false
     /// Up right after "Start Workout", and from the "+" chip and "Add Exercise".
     var isPickerPresented = false
+    /// The last Resume tap on the stale prompt. Kept in memory only, so a relaunch soon after Resume asks again.
+    private var resumedAt: Date?
+    /// When the stale prompt came up, while it is up.
+    var stalePromptAt: Date?
 
     init(workout: Workout) {
         self.workout = workout
@@ -88,6 +92,34 @@ final class LoggingSession {
     private func moveToFirstTargetSet() {
         currentSet = currentEntry?.firstTargetSet
         isAskingRIR = false
+    }
+
+    /// Whether the stale prompt is due: the last activity (the last `completedAt`, `startedAt` or the last
+    /// Resume tap) is more than 3 hours before `now`.
+    func isStale(at now: Date) -> Bool {
+        let activity = [workout.lastCompletedAt, workout.startedAt, resumedAt].compactMap(\.self).max() ?? now
+        return now.timeIntervalSince(activity) > 3 * 3600
+    }
+
+    /// Resume on the stale prompt.
+    func resume(at date: Date) {
+        resumedAt = date
+    }
+
+    func finish(at end: Date) {
+        do {
+            try workout.finish(at: end)
+        } catch {
+            fatalError("Could not finish the Workout: \(error)")
+        }
+    }
+
+    func discard() {
+        do {
+            try workout.discard()
+        } catch {
+            fatalError("Could not discard the Workout: \(error)")
+        }
     }
 
     /// The Entry after the current one, for "Next: <Exercise>". Empty on the last Entry.
