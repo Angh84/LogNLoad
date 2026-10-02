@@ -41,10 +41,48 @@ enum DisplayFormat {
         guard let sets = exercise.lastPerformance, let date = sets.first?.entry?.workout?.startedAt else {
             return "Not logged yet"
         }
+        let working = sets.filter(\.isWorkingSet)
+        return shortDate(date, now: now, locale: locale, calendar: calendar) + ": "
+            + summary(of: working.isEmpty ? sets : working, of: exercise, locale: locale)
+    }
+
+    /// "28 Sep", with the year when it isn't the current one: Last Performance and the Exercise page's tiles.
+    static func shortDate(_ date: Date, now: Date = .now, locale: Locale = .current, calendar: Calendar = .current) -> String {
         var style = Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone).day().month(.abbreviated)
         if !calendar.isDate(date, equalTo: now, toGranularity: .year) { style = style.year() }
-        let working = sets.filter(\.isWorkingSet)
-        return date.formatted(style) + ": " + summary(of: working.isEmpty ? sets : working, of: exercise, locale: locale)
+        return date.formatted(style)
+    }
+
+    /// The Exercise page's header line, "Machine - Loaded - Unilateral - kg per dumbbell", with only the parts that
+    /// apply.
+    static func exerciseDetails(_ exercise: Exercise) -> String {
+        var parts = [exercise.equipment?.name, exercise.loadType.name].compactMap(\.self)
+        if exercise.isUnilateral { parts.append("Unilateral") }
+        if exercise.weightConvention == .perImplement, let equipment = exercise.equipment {
+            parts.append("kg per \(equipment.name.lowercased())")
+        }
+        return parts.joined(separator: " \u{2013} ")
+    }
+
+    /// The Exercise page's history in month sections, newest first. `entries` come newest first.
+    static func historyMonths(_ entries: [ExerciseEntry], calendar: Calendar = .current) -> [(month: Date, entries: [ExerciseEntry])] {
+        var months: [(month: Date, entries: [ExerciseEntry])] = []
+        for entry in entries {
+            guard let startedAt = entry.workout?.startedAt, let month = calendar.dateInterval(of: .month, for: startedAt)?.start else { continue }
+            if months.last?.month == month {
+                months[months.count - 1].entries.append(entry)
+            } else {
+                months.append((month, [entry]))
+            }
+        }
+        return months
+    }
+
+    /// The lock note's equipment limit for an Exercise with history.
+    static func equipmentLimit(for exercise: Exercise) -> String {
+        exercise.weightConvention == .perImplement
+            ? "Equipment can only change between Dumbbell and Kettlebell."
+            : "Equipment can't change to Dumbbell or Kettlebell."
     }
 
     /// "45 min", "1 h 10 min", "2 h", from both times truncated to the minute so it matches the times shown.

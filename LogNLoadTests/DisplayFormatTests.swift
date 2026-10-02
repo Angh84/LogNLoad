@@ -321,4 +321,37 @@ struct DisplayFormatTests {
         #expect(DisplayFormat.pagingTarget(date(2026, 8, 1, 0), workouts: workouts, calendar: Self.mondayCalendar) == june)
         #expect(DisplayFormat.pagingTarget(date(2026, 5, 1, 0), workouts: workouts, calendar: Self.mondayCalendar) == nil)
     }
+
+    // MARK: Exercise page
+
+    @Test func theDetailsLineShowsOnlyThePartsThatApply() {
+        #expect(DisplayFormat.exerciseDetails(exercise(.machine)) == "Machine \u{2013} Loaded")
+        #expect(DisplayFormat.exerciseDetails(exercise(.dumbbell, isUnilateral: true)) == "Dumbbell \u{2013} Loaded \u{2013} Unilateral \u{2013} kg per dumbbell")
+        #expect(DisplayFormat.exerciseDetails(exercise(.bodyweight, loadType: .bodyweight)) == "Bodyweight \u{2013} Bodyweight")
+        #expect(DisplayFormat.exerciseDetails(exercise(.kettlebell)) == "Kettlebell \u{2013} Loaded \u{2013} kg per kettlebell")
+    }
+
+    @Test func aShortDateHasTheYearOnlyOutsideTheCurrentYear() {
+        #expect(DisplayFormat.shortDate(date(2026, 9, 28), now: Self.today, locale: Self.british) == "28 Sep")
+        #expect(DisplayFormat.shortDate(date(2025, 12, 30), now: Self.today, locale: Self.british) == "30 Dec 2025")
+    }
+
+    @Test func theLockNoteNamesTheEquipmentLimit() {
+        #expect(DisplayFormat.equipmentLimit(for: exercise(.dumbbell)) == "Equipment can only change between Dumbbell and Kettlebell.")
+        #expect(DisplayFormat.equipmentLimit(for: exercise(.cable)) == "Equipment can't change to Dumbbell or Kettlebell.")
+    }
+
+    @Test func anExercisesHistoryIsGroupedIntoMonthsNewestFirst() {
+        let squat = exercise()
+        let entries = [date(2026, 9, 30), date(2026, 9, 2), date(2026, 8, 20)].map { start in
+            let workout = Workout(startedAt: start, endedAt: start.addingTimeInterval(3600))
+            context.insert(workout)
+            return ExerciseEntry(workout: workout, exercise: squat, order: 0)
+        }
+
+        let months = DisplayFormat.historyMonths(entries, calendar: Self.mondayCalendar)
+
+        #expect(months.map(\.month) == [date(2026, 9, 1, 0), date(2026, 8, 1, 0)])
+        #expect(months.map(\.entries) == [[entries[0], entries[1]], [entries[2]]])
+    }
 }

@@ -5,7 +5,7 @@ import SwiftUI
 struct HistoryView: View {
     /// The Workout just finished, which the list lands on and highlights briefly.
     let justFinished: UUID?
-    @State private var path: [Workout] = []
+    @State private var path = NavigationPath()
     @State private var workoutToDelete: Workout?
     @State private var toast: String?
 
@@ -13,18 +13,16 @@ struct HistoryView: View {
         NavigationStack(path: $path) {
             HistoryList(justFinished: justFinished, workoutToDelete: $workoutToDelete)
                 .navigationTitle("History")
-                .navigationDestination(for: Workout.self) { workout in
-                    WorkoutDetailView(workout: workout, onDelete: delete)
-                }
+                .sharedDestinations(path: $path, onDeleteWorkout: delete)
                 .deleteWorkoutConfirm($workoutToDelete, onDelete: delete)
-                .toast($toast)
         }
-        .onChange(of: justFinished) { path = [] }
+        // Over the whole stack, so it shows on the screen a deleted Workout's detail closes onto.
+        .toast($toast)
+        .onChange(of: justFinished) { path = NavigationPath() }
     }
 
-    /// Delete Workout, from a row swipe or the detail, which closes onto the list.
+    /// Delete Workout, from a row swipe or a detail. The detail closes itself once its Workout is gone.
     private func delete(_ workout: Workout) {
-        path = []
         do {
             try workout.delete()
         } catch {
