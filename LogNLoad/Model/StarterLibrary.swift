@@ -1,0 +1,91 @@
+/// The starter Exercise Library. This source wins over the seed table in starter-library.md:
+/// add and change seeds here. A seed's UUID is fixed once written and never changes.
+extension SeedEntry {
+    static let starterLibrary: [SeedEntry] = [
+        // Chest
+        SeedEntry("C7A44B0A-165C-404B-B2C4-9BFB1F484570", "Incline Chest Press (Hoist)", .machine, [.upperChest: 1.0, .lowerChest: 0.5, .frontDelts: 0.75, .triceps: 0.5]),
+        SeedEntry("990FAE93-48B2-4666-A933-11350BDD93CC", "Incline Chest Press (Hammer Strength)", .machine, [.upperChest: 1.0, .lowerChest: 0.5, .frontDelts: 0.75, .triceps: 0.5]),
+        SeedEntry("DD84F5D0-DC5D-4651-A40E-D8D84F33F8D8", "Incline Chest Press (Nautilus)", .machine, [.upperChest: 1.0, .lowerChest: 0.5, .frontDelts: 0.75, .triceps: 0.5]),
+        SeedEntry("E3085A9B-373C-4C11-81CD-D88433D729AD", "Chest Press (Hoist)", .machine, [.lowerChest: 1.0, .upperChest: 0.5, .frontDelts: 0.5, .triceps: 0.5]),
+        SeedEntry("18B15922-4252-46F1-B9D0-7C8FE5F5820E", "Chest Press (Hammer Strength)", .machine, [.lowerChest: 1.0, .upperChest: 0.5, .frontDelts: 0.5, .triceps: 0.5]),
+        SeedEntry("B1C7198D-4C64-43AF-9EDD-9DD04301ACBC", "Chest Press (Nautilus)", .machine, [.lowerChest: 1.0, .upperChest: 0.5, .frontDelts: 0.5, .triceps: 0.5]),
+        SeedEntry("B098A21A-00AC-42FD-9D53-001D8EE67848", "Chest Press (Star Trac)", .machine, [.lowerChest: 1.0, .upperChest: 0.5, .frontDelts: 0.5, .triceps: 0.5]),
+        SeedEntry("77F89E41-5362-49DD-ADDB-7000F5221299", "Chest Fly (Nautilus)", .machine, [.lowerChest: 1.0, .upperChest: 0.5, .frontDelts: 0.25]),
+
+        // Shoulders
+        SeedEntry("7002D43C-6B89-469A-A503-833F39355142", "Lateral Raise (Nautilus)", .machine, [.sideDelts: 1.0, .traps: 0.25]),
+        SeedEntry("7FAE2CC6-05DF-4794-AF96-7D39517D711C", "Seated DB Lateral Raise", .dumbbell, [.sideDelts: 0.9, .traps: 0.25]),
+        SeedEntry("6964F4F6-E5F7-4748-B6AD-1119B4244A83", "Single-Arm Cable Lateral Raise", .cable, isUnilateral: true, [.sideDelts: 1.0, .traps: 0.25]),
+        SeedEntry("8012E4F3-DEAC-4E8A-B745-23B82B5CFEA5", "Shoulder Press (Hoist)", .machine, [.frontDelts: 1.0, .sideDelts: 0.5, .triceps: 0.5, .upperChest: 0.25, .traps: 0.25]),
+        SeedEntry("8E44F1FC-4FAA-4060-99EA-4404AC72E4D3", "Shoulder Press (Hammer Strength)", .machine, [.frontDelts: 1.0, .sideDelts: 0.5, .triceps: 0.5, .upperChest: 0.25, .traps: 0.25]),
+        SeedEntry("143AB8A7-25C0-480A-8E7A-9A8466B92C01", "Shoulder Press (Nautilus)", .machine, [.frontDelts: 1.0, .sideDelts: 0.5, .triceps: 0.5, .upperChest: 0.25, .traps: 0.25]),
+        SeedEntry("2E36C8F0-FB62-419A-A223-45D9E0BD63A4", "Shoulder Press (Star Trac)", .machine, [.frontDelts: 1.0, .sideDelts: 0.5, .triceps: 0.5, .upperChest: 0.25, .traps: 0.25]),
+        SeedEntry("7DBFEFA4-B486-4A49-BA5E-1A4107572635", "Reverse Fly (Nautilus)", .machine, [.rearDelts: 1.0, .upperBack: 0.5]),
+        SeedEntry("ABE323B3-AD1A-41A7-B779-3B5F6DB39A53", "Face Pull", .cable, [.rearDelts: 1.0, .sideDelts: 0.5, .rotatorCuff: 0.5, .upperBack: 0.5, .traps: 0.25]),
+        SeedEntry("D95A0215-2453-4E3B-AA22-4F9ED207075B", "Cable Upright Row", .cable, [.sideDelts: 1.0, .traps: 0.75, .frontDelts: 0.25]),
+        SeedEntry("B098776D-6D4E-4C82-89C4-291167D6E914", "Barbell Upright Row", .barbell, [.sideDelts: 1.0, .traps: 0.75, .frontDelts: 0.25]),
+        SeedEntry("0FA1501B-AF5E-43FC-BF37-3B226F1CA3FE", "Cable External Rotation at Side", .cable, isUnilateral: true, [.rotatorCuff: 1.0, .rearDelts: 0.25]),
+        SeedEntry("AB68597C-EB3B-497D-94B4-0BA9628CA645", "Cable Internal Rotation at Side", .cable, isUnilateral: true, [.rotatorCuff: 1.0]),
+        SeedEntry("8ED1E49A-DB87-4D83-9FBE-6C99E3E034D5", "Prone Incline Y Raise", .dumbbell, [.upperBack: 1.0, .sideDelts: 0.25, .rearDelts: 0.25]),
+
+        // Back
+        SeedEntry("0F69943E-7B90-47E0-836A-4A5D75CBC765", "Lat Pulldown (Hoist)", .machine, [.lats: 1.0, .upperBack: 0.5, .biceps: 0.5, .brachialis: 0.25, .rearDelts: 0.25]),
+        SeedEntry("95D25E91-037A-44FE-89B9-AD2C8D561B46", "Lat Pulldown (Hammer Strength)", .machine, [.lats: 1.0, .upperBack: 0.5, .biceps: 0.5, .brachialis: 0.25, .rearDelts: 0.25]),
+        SeedEntry("788CD499-7B25-40A9-8C33-D02566E30F95", "Lat Pulldown (Nautilus)", .machine, [.lats: 1.0, .upperBack: 0.5, .biceps: 0.5, .brachialis: 0.25, .rearDelts: 0.25]),
+        SeedEntry("AF50702E-E88C-4B6E-8CEF-07A62958C012", "Lat Pulldown (Star Trac)", .machine, [.lats: 1.0, .upperBack: 0.5, .biceps: 0.5, .brachialis: 0.25, .rearDelts: 0.25]),
+        SeedEntry("80BFCF6C-5AD9-4AEB-84BD-6EF2E078F5FC", "Cable Lat Pulldown", .cable, [.lats: 1.0, .upperBack: 0.5, .biceps: 0.5, .brachialis: 0.25, .rearDelts: 0.25]),
+        SeedEntry("5F1189F7-05F4-4508-9C28-7E7608AB7736", "Lat Prayer", .cable, [.lats: 1.0, .triceps: 0.25]),
+        SeedEntry("12C7D30F-83AA-4E81-AFDC-8D1095512C3F", "Assisted Pull-Up (Nautilus)", .machine, loadType: .assisted, [.lats: 1.0, .upperBack: 0.5, .biceps: 0.5, .brachialis: 0.5, .rearDelts: 0.25]),
+        SeedEntry("8C380767-ADB7-4436-81A2-7B30E24C5D26", "High Row (Hammer Strength)", .machine, [.lats: 0.75, .upperBack: 0.75, .rearDelts: 0.5, .biceps: 0.5, .brachialis: 0.25]),
+        SeedEntry("51B27A52-14E0-41FD-86C4-03F7A69ABA58", "Seated Row (Hammer Strength)", .machine, [.upperBack: 1.0, .lats: 0.75, .rearDelts: 0.5, .biceps: 0.5, .brachialis: 0.25]),
+        SeedEntry("3C27C784-28B5-4A2A-A44B-27B2663DF476", "Seated Row (Hoist)", .machine, [.upperBack: 1.0, .lats: 0.75, .rearDelts: 0.5, .biceps: 0.5, .brachialis: 0.25]),
+        SeedEntry("F04939FF-EBF0-4D7C-B166-B11C6F41FC7D", "Seated Row (Nautilus)", .machine, [.upperBack: 1.0, .lats: 0.75, .rearDelts: 0.5, .biceps: 0.5, .brachialis: 0.25]),
+        SeedEntry("736EE89B-C150-4917-B11C-E43A9F3C8F85", "Seated Row (Star Trac)", .machine, [.upperBack: 1.0, .lats: 0.75, .rearDelts: 0.5, .biceps: 0.5, .brachialis: 0.25]),
+        SeedEntry("2F41B96B-8D99-4447-904D-1C9265C6A8FE", "Cable Close-Grip Seated Row", .cable, [.lats: 1.0, .upperBack: 0.75, .biceps: 0.5, .brachialis: 0.5, .rearDelts: 0.25]),
+        SeedEntry("61913958-43CC-477C-B8B9-A103CA84F0DA", "Cable Wide-Grip Seated Row", .cable, [.upperBack: 1.0, .rearDelts: 0.75, .lats: 0.5, .brachialis: 0.5, .biceps: 0.25]),
+        SeedEntry("7F628D84-001E-4D99-909A-BDE09FFE44C4", "Barbell Row", .barbell, [.upperBack: 1.0, .lats: 0.75, .rearDelts: 0.5, .lowerBack: 0.5, .biceps: 0.5, .brachialis: 0.25]),
+        SeedEntry("DC566576-819A-410F-B089-A9B4E45D282E", "Pullover (Nautilus)", .machine, [.lats: 1.0, .lowerChest: 0.25, .triceps: 0.25]),
+        SeedEntry("31360D49-2058-4A14-A72B-6F8DB1F0A587", "Back Extension (Nautilus)", .machine, [.lowerBack: 1.0, .glutes: 0.25]),
+        SeedEntry("E8503621-D45D-4A00-8AA6-C05DE0F65977", "Deadlift", .barbell, [.glutes: 0.75, .hamstrings: 0.75, .lowerBack: 0.75, .quads: 0.5, .traps: 0.5, .adductors: 0.25]),
+
+        // Biceps and forearms
+        SeedEntry("AD525471-6272-44FC-B9E9-ACE1A14EC490", "Close-Grip EZ Preacher Curl", .barbell, [.biceps: 1.0, .brachialis: 0.75]),
+        SeedEntry("D5F1FEFD-147A-4C97-8608-FCE3D022D170", "DB Preacher Curl", .dumbbell, isUnilateral: true, [.biceps: 1.0, .brachialis: 0.5]),
+        SeedEntry("EB195DE1-70C6-4D82-B98F-41B87EF98DD6", "Biceps Curl (Nautilus)", .machine, [.biceps: 1.0, .brachialis: 0.5]),
+        SeedEntry("345C0211-6171-4B6B-A6A5-10ECD6D8BBF2", "Incline Biceps Curl (Nautilus)", .machine, [.biceps: 1.0, .brachialis: 0.25]),
+        SeedEntry("B7B516E7-BD0B-4E67-A688-957FD97E7432", "Lying DB Curl", .dumbbell, [.biceps: 1.0, .brachialis: 0.25]),
+        SeedEntry("45D21B71-8650-400C-8B0B-627F6D7E1423", "Bayesian Curl", .cable, isUnilateral: true, [.biceps: 1.0, .brachialis: 0.25]),
+        SeedEntry("DEE23202-3C6A-4251-A051-D14244198C72", "Cable Curl With Bar", .cable, [.biceps: 1.0, .brachialis: 0.5]),
+        SeedEntry("0431DDF8-AD67-4C31-B010-96D5D4FF4C3A", "EZ Curl", .barbell, [.biceps: 0.9, .brachialis: 0.5]),
+        SeedEntry("74FC2192-C5AB-4951-B4E5-D8BE86BD3DE6", "Concentration Curl", .dumbbell, isUnilateral: true, [.biceps: 0.9, .brachialis: 0.5]),
+        SeedEntry("9FC542F0-6305-4F92-AB7E-E8CDBE842CDB", "Hammer Curl", .dumbbell, [.brachialis: 0.9, .biceps: 0.5, .forearms: 0.5]),
+        SeedEntry("0F2C27A5-A88C-4D05-9127-7B8CF0B9DA3D", "DB Wrist Curl", .dumbbell, [.forearms: 1.0]),
+        SeedEntry("F67A360E-F6C5-4F20-9735-CEF4D63B75D9", "DB Wrist Extension", .dumbbell, [.forearms: 1.0]),
+
+        // Triceps
+        SeedEntry("D0D989A7-C6AC-4B42-A90A-724881D0451F", "Triceps Pushdown With Bar", .cable, [.triceps: 0.9]),
+        SeedEntry("AEA398C4-9663-49DC-8AD9-15143B2B1155", "Triceps Pushdown With Rope", .cable, [.triceps: 0.9]),
+        SeedEntry("600FD7CB-CB5A-4A8D-A58C-374F92969514", "Seated DB French Press", .dumbbell, [.triceps: 1.0]),
+        SeedEntry("CCBFA39C-E640-41E8-B655-2966D40EB102", "Seated Single-Arm DB French Press", .dumbbell, isUnilateral: true, [.triceps: 1.0]),
+        SeedEntry("D6121C80-DC90-4700-99B7-35161BD1E39D", "Triceps Extension (Nautilus)", .machine, [.triceps: 1.0]),
+        SeedEntry("E9C58A97-18DA-4BB7-BDC1-5AC32F84E4E5", "Lying EZ Triceps Extension", .barbell, [.triceps: 1.0]),
+        SeedEntry("D2D07F33-E8E1-448A-A378-0F47D3CD3A4C", "Assisted Dip (Nautilus)", .machine, loadType: .assisted, [.triceps: 1.0, .lowerChest: 0.75, .frontDelts: 0.5]),
+        SeedEntry("DF0D1DE8-BADA-4A93-9418-E79320045933", "Dip Machine (Nautilus)", .machine, [.triceps: 1.0, .lowerChest: 0.5, .frontDelts: 0.25]),
+
+        // Legs
+        SeedEntry("DD4B4C1D-AA48-4DD1-A3F9-8558C4214417", "Leg Press (Hammer Strength)", .machine, [.quads: 1.0, .glutes: 0.5, .adductors: 0.5]),
+        SeedEntry("4C83AD7F-B234-49E8-B68A-6F39D8C5DAD4", "Seated Leg Press (Nautilus)", .machine, [.quads: 1.0, .glutes: 0.5, .adductors: 0.5]),
+        SeedEntry("3D7975C6-10A4-4961-99D1-DB7CE79F5CA7", "Hack Squat (Hammer Strength)", .machine, [.quads: 1.0, .glutes: 0.5, .adductors: 0.5]),
+        SeedEntry("430DE225-4CE0-4E1E-AE48-9956651187A6", "Squat", .barbell, [.quads: 1.0, .glutes: 0.75, .adductors: 0.5, .lowerBack: 0.25]),
+        SeedEntry("678BCEFB-4B63-4C74-BBBB-BD0BD78176A9", "Air Squat", .bodyweight, loadType: .bodyweight, [.quads: 1.0, .glutes: 0.75, .adductors: 0.5]),
+        SeedEntry("548195EF-28ED-4E42-8369-EE49D5BAD240", "DB Walking Lunge", .dumbbell, isUnilateral: true, [.quads: 1.0, .glutes: 0.75, .adductors: 0.5]),
+        SeedEntry("35A5528C-CDED-4CE8-BE65-DCAA7EF7C2F0", "Bodyweight Lunge", .bodyweight, loadType: .bodyweight, isUnilateral: true, [.quads: 1.0, .glutes: 0.75, .adductors: 0.5]),
+        SeedEntry("12E9810D-FDC5-4CF5-8699-1988D3C8EE79", "Leg Extension (Nautilus)", .machine, [.quads: 1.0]),
+        SeedEntry("AE0179A4-3F7E-43A0-A484-6C4C8DC78D12", "Seated Leg Curl (Nautilus)", .machine, [.hamstrings: 1.0]),
+        SeedEntry("ADB202B8-BF0F-44BE-8D2F-7AAF6EB72C91", "Lying Leg Curl (Nautilus)", .machine, [.hamstrings: 0.9]),
+        SeedEntry("B69F319E-90C6-4114-B2A6-D1E1E80B3D82", "Romanian Deadlift", .barbell, [.hamstrings: 1.0, .glutes: 0.75, .adductors: 0.5, .lowerBack: 0.5]),
+        SeedEntry("C1041370-7724-4E7E-B156-BE15FB8C7D6B", "Hip Adduction (Nautilus)", .machine, [.adductors: 1.0]),
+        SeedEntry("10940C06-49B9-40AE-AD74-A26B12F14C67", "Hip Abduction (Nautilus)", .machine, [.abductors: 1.0, .glutes: 0.25]),
+        SeedEntry("CA82ABAF-5B05-4DF5-967F-7ED3F827279A", "Standing Calf Raise (Nautilus)", .machine, [.calves: 1.0]),
+    ]
+}
