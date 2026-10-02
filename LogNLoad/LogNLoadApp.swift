@@ -20,7 +20,7 @@ struct LogNLoadApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Color.black.ignoresSafeArea()
+            RootView()
         }
         .modelContainer(container)
     }
