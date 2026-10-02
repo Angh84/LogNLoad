@@ -36,6 +36,15 @@ extension Workout {
         return try context.fetch(descriptor).first
     }
 
+    /// Starts the Active Workout at the tap time. There is at most one at a time.
+    static func start(at date: Date, in context: ModelContext) throws -> Workout {
+        guard try active(in: context) == nil else { throw WorkoutError.activeWorkoutExists }
+        let workout = Workout(startedAt: date)
+        context.insert(workout)
+        try context.save()
+        return workout
+    }
+
     var sortedEntries: [ExerciseEntry] {
         (entries ?? []).sorted { $0.order < $1.order }
     }
@@ -43,4 +52,21 @@ extension Workout {
     var isHealthPending: Bool {
         !isActive && healthConfirmedVersion != healthWriteCounter
     }
+
+    /// Appends an Entry for `exercise`, prefilled with target Sets copied from its Last Performance,
+    /// else one 0 kg x 0 target Set. An Exercise already in the Workout returns its Entry instead.
+    func add(_ exercise: Exercise) -> ExerciseEntry {
+        if let existing = sortedEntries.first(where: { $0.exercise == exercise }) { return existing }
+        let entry = ExerciseEntry(workout: self, exercise: exercise, order: (sortedEntries.last?.order ?? -1) + 1)
+        let prefill = exercise.lastPerformance ?? []
+        for (order, set) in prefill.enumerated() {
+            _ = WorkoutSet(entry: entry, order: order, weight: set.weight, reps: set.reps, repsLeft: set.repsLeft, repsRight: set.repsRight, isWarmUp: set.isWarmUp)
+        }
+        if prefill.isEmpty { _ = WorkoutSet(entry: entry, order: 0) }
+        return entry
+    }
+}
+
+enum WorkoutError: Error {
+    case activeWorkoutExists
 }

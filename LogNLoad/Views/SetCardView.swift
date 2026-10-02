@@ -1,0 +1,225 @@
+import SwiftUI
+
+/// The card: the Exercise, the current Set with its steppers and the Set loop's actions,
+/// or the no-target state.
+struct SetCardView: View {
+    let session: LoggingSession
+    let entry: ExerciseEntry
+    let exercise: Exercise
+    @State private var completions = 0
+    @FocusState private var isTypingWeight: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(exercise.name ?? "")
+                .font(.title2.bold())
+            if let note = exercise.note {
+                Text(note)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            if let set = session.currentSet {
+                Text(entry.title(of: set))
+                    .font(.subheadline.weight(.bold))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary)
+                WeightStepper(label: DisplayFormat.weightLabel(for: exercise), weight: set.weight, isTyping: $isTypingWeight) {
+                    session.changeWeight(to: $0)
+                }
+                if exercise.isUnilateral {
+                    RepsStepper(label: "Left", name: "left reps", reps: set.repsLeft) { session.changeReps(\.repsLeft, to: $0) }
+                    RepsStepper(label: "Right", name: "right reps", reps: set.repsRight) { session.changeReps(\.repsRight, to: $0) }
+                } else {
+                    RepsStepper(label: "Reps", name: "reps", reps: set.reps) { session.changeReps(\.reps, to: $0) }
+                }
+                actions(for: set)
+            } else {
+                noTargetState
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(.background.secondary, in: .rect(cornerRadius: 22))
+        .sensoryFeedback(.success, trigger: completions)
+        .onChange(of: session.currentSet) { isTypingWeight = false }
+    }
+
+    @ViewBuilder
+    private func actions(for set: WorkoutSet) -> some View {
+        if session.isAskingRIR {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Reps in reserve?")
+                    .font(.headline)
+                HStack(spacing: 6) {
+                    ForEach(0...4, id: \.self) { rir in
+                        Button { session.recordRIR(rir) } label: {
+                            Text(DisplayFormat.rir(rir))
+                                .font(.headline)
+                                .lineLimit(1)
+                                .frame(maxWidth: .infinity, minHeight: 48)
+                                .background(.quaternary, in: .rect(cornerRadius: 12))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                Button { session.recordRIR(nil) } label: {
+                    Text("Skip").frame(maxWidth: .infinity)
+                }
+            }
+            .padding(14)
+            .background(.tint.opacity(0.15), in: .rect(cornerRadius: 16))
+        } else if set.isTarget {
+            Button {
+                completions += 1
+                isTypingWeight = false
+                session.complete(at: .now)
+            } label: {
+                Label("Complete Set", systemImage: "checkmark")
+                    .font(.headline)
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.extraLarge)
+        } else {
+            HStack(spacing: 8) {
+                Button { session.undoCompletion() } label: {
+                    Text("Undo completion").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                Button { session.nextSet() } label: {
+                    Text("Next Set").foregroundStyle(.black).frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .controlSize(.large)
+        }
+    }
+
+    private var noTargetState: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.largeTitle)
+                .foregroundStyle(.green)
+            Text(entry.noTargetHeading)
+                .font(.headline)
+            Group {
+                if let next = session.nextEntry {
+                    Button { session.select(next) } label: {
+                        Text("Next: \(next.exercise?.name ?? "")").foregroundStyle(.black).frame(maxWidth: .infinity)
+                    }
+                } else {
+                    Button { session.isPickerPresented = true } label: {
+                        Text("Add Exercise").foregroundStyle(.black).frame(maxWidth: .infinity)
+                    }
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+/// The weight stepper: 2.5 kg per tap, and the number can be typed.
+private struct WeightStepper: View {
+    static let format = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0...2))
+    let label: String
+    let weight: Double
+    var isTyping: FocusState<Bool>.Binding
+    let onChange: (Double) -> Void
+    @State private var text = ""
+
+    var body: some View {
+        BigStepper(label: label, name: "weight", onStep: { step in
+            isTyping.wrappedValue = false
+            onChange(weight + 2.5 * Double(step))
+        }) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                TextField("0", text: $text)
+                    .accessibilityLabel(label)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .fixedSize()
+                    .focused(isTyping)
+                    .onChange(of: text) {
+                        // Saved as it is typed, so the value reaches this Set even when the user moves on without "Done".
+                        if isTyping.wrappedValue, let kg = try? Double(text, format: Self.format) { onChange(kg) }
+                    }
+                Text("kg")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .onChange(of: weight, initial: true) {
+            if !isTyping.wrappedValue { text = weight.formatted(Self.format) }
+        }
+        .onChange(of: isTyping.wrappedValue) {
+            if !isTyping.wrappedValue { text = weight.formatted(Self.format) }
+        }
+        .toolbar {
+            if isTyping.wrappedValue {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { isTyping.wrappedValue = false }
+                }
+            }
+        }
+    }
+}
+
+/// A reps stepper: 1 per tap.
+private struct RepsStepper: View {
+    let label: String
+    let name: String
+    let reps: Int
+    let onChange: (Int) -> Void
+
+    var body: some View {
+        BigStepper(label: label, name: name, onStep: { onChange(reps + $0) }) {
+            Text("\(reps)")
+        }
+    }
+}
+
+/// A label, then a big value between "-" and "+". Each tap gives the selection haptic.
+private struct BigStepper<Value: View>: View {
+    let label: String
+    /// What the "-" and "+" accessibility labels name, e.g. "weight".
+    let name: String
+    let onStep: (Int) -> Void
+    @ViewBuilder let value: Value
+    @State private var taps = 0
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            HStack {
+                step(-1, "Decrease \(name)", systemImage: "minus")
+                Spacer()
+                value
+                    .font(.system(.largeTitle, design: .rounded).bold().monospacedDigit())
+                Spacer()
+                step(1, "Increase \(name)", systemImage: "plus")
+            }
+        }
+        .sensoryFeedback(.selection, trigger: taps)
+    }
+
+    private func step(_ direction: Int, _ title: String, systemImage: String) -> some View {
+        Button {
+            taps += 1
+            onStep(direction)
+        } label: {
+            Label(title, systemImage: systemImage)
+                .labelStyle(.iconOnly)
+                .frame(width: 32, height: 32)
+        }
+        .font(.title2.bold())
+        .buttonStyle(.bordered)
+        .buttonBorderShape(.circle)
+        .controlSize(.large)
+    }
+}

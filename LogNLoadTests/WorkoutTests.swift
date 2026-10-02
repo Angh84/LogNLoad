@@ -124,6 +124,123 @@ struct WorkoutTests {
         #expect(try context.fetch(FetchDescriptor<WorkoutSet>()) == [keptSet])
     }
 
+    // MARK: Start
+
+    @Test func startCreatesTheActiveWorkoutAtTheTapTime() throws {
+        let workout = try Workout.start(at: day(30), in: context)
+
+        let fresh = ModelContext(container)
+        let stored = try #require(try Workout.active(in: fresh))
+        #expect(stored.id == workout.id)
+        #expect(stored.startedAt == day(30))
+        #expect(stored.entries == [])
+    }
+
+    @Test func noSecondWorkoutStartsWhileOneIsActive() throws {
+        _ = try Workout.start(at: day(30), in: context)
+
+        #expect(throws: WorkoutError.activeWorkoutExists) {
+            try Workout.start(at: day(30, 18), in: context)
+        }
+        #expect(try context.fetchCount(FetchDescriptor<Workout>()) == 1)
+    }
+
+    @Test func aWorkoutStartsOnceTheLastOneIsFinished() throws {
+        context.insert(Workout(startedAt: day(28), endedAt: day(28, 18)))
+        try context.save()
+
+        let workout = try Workout.start(at: day(30), in: context)
+
+        #expect(try Workout.active(in: context) == workout)
+    }
+
+    // MARK: Adding an Exercise
+
+    @Test func anExerciseWithoutLastPerformanceGetsOneEmptyTargetSet() throws {
+        let workout = try Workout.start(at: day(30), in: context)
+        let bench = benchPress()
+
+        let entry = workout.add(bench)
+
+        #expect(workout.sortedEntries == [entry])
+        #expect(entry.exercise == bench)
+        let set = try #require(entry.sortedSets.first)
+        #expect(entry.sortedSets.count == 1)
+        #expect(set.weight == 0)
+        #expect(set.reps == 0)
+        #expect(set.completedAt == nil)
+        #expect(!set.isWarmUp)
+    }
+
+    @Test func prefillCopiesLastPerformanceAsTargetSetsInOrder() throws {
+        let bench = benchPress()
+        let last = Workout(startedAt: day(28), endedAt: day(28, 18))
+        context.insert(last)
+        let lastEntry = ExerciseEntry(workout: last, exercise: bench, order: 0, note: "Wide grip")
+        _ = WorkoutSet(entry: lastEntry, order: 0, weight: 20, reps: 10, isWarmUp: true, completedAt: day(28))
+        _ = WorkoutSet(entry: lastEntry, order: 1, weight: 62.5, reps: 10, rir: 2, note: "Felt heavy", completedAt: day(28))
+        _ = WorkoutSet(entry: lastEntry, order: 2, weight: 62.5, reps: 0, rir: 0, completedAt: day(28))
+        let workout = try Workout.start(at: day(30), in: context)
+
+        let entry = workout.add(bench)
+
+        let values = entry.sortedSets.map { [$0.weight, Double($0.reps), $0.isWarmUp ? 1 : 0] }
+        #expect(values == [[20, 10, 1], [62.5, 10, 0], [62.5, 0, 0]])
+        #expect(entry.sortedSets.allSatisfy { $0.completedAt == nil && $0.rir == nil && $0.note == nil })
+        #expect(entry.note == nil)
+    }
+
+    @Test func prefillCopiesBothSidesOfAUnilateralExercise() throws {
+        let curl = Exercise(name: "Concentration Curl", equipment: .dumbbell, isUnilateral: true, muscleEmphases: [MuscleEmphasis(muscleGroup: .biceps, weight: 1)])
+        context.insert(curl)
+        let last = Workout(startedAt: day(28), endedAt: day(28, 18))
+        context.insert(last)
+        _ = WorkoutSet(entry: ExerciseEntry(workout: last, exercise: curl, order: 0), order: 0, weight: 14, repsLeft: 10, repsRight: 9, completedAt: day(28))
+        let workout = try Workout.start(at: day(30), in: context)
+
+        let set = try #require(workout.add(curl).sortedSets.first)
+
+        #expect(set.weight == 14)
+        #expect(set.repsLeft == 10)
+        #expect(set.repsRight == 9)
+    }
+
+    @Test func prefillIsASnapshotOfLastPerformance() throws {
+        let bench = benchPress()
+        let last = Workout(startedAt: day(28), endedAt: day(28, 18))
+        context.insert(last)
+        let lastSet = WorkoutSet(entry: ExerciseEntry(workout: last, exercise: bench, order: 0), order: 0, weight: 60, reps: 10, completedAt: day(28))
+        let workout = try Workout.start(at: day(30), in: context)
+        let entry = workout.add(bench)
+
+        lastSet.weight = 70
+        context.delete(last)
+        try context.save()
+
+        #expect(entry.sortedSets.map(\.weight) == [60])
+    }
+
+    @Test func aNewEntryIsAppendedAfterTheLastOne() throws {
+        let workout = try Workout.start(at: day(30), in: context)
+        let squat = Exercise(name: "Squat", equipment: .barbell, muscleEmphases: [MuscleEmphasis(muscleGroup: .quads, weight: 1)])
+        context.insert(squat)
+        let first = workout.add(benchPress())
+
+        let second = workout.add(squat)
+
+        #expect(workout.sortedEntries == [first, second])
+    }
+
+    @Test func addingAnExerciseAlreadyInTheWorkoutReturnsItsEntry() throws {
+        let workout = try Workout.start(at: day(30), in: context)
+        let bench = benchPress()
+        let entry = workout.add(bench)
+
+        #expect(workout.add(bench) == entry)
+        #expect(workout.sortedEntries == [entry])
+        #expect(entry.sortedSets.count == 1)
+    }
+
     @Test func namesAndNotesAreStoredTrimmedAndEmptyAsNoValue() throws {
         let workout = Workout(startedAt: day(30), name: "  Push day \n", note: " \n ")
         context.insert(workout)
