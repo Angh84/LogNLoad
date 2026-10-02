@@ -207,16 +207,17 @@ struct SetCardView: View {
     }
 }
 
-/// A chip on the card, filled with the accent while it is on.
-private struct Chip: View {
+/// A chip on the card and in the Exercise form, filled with the accent while it is on.
+struct Chip: View {
     let title: String
     let isOn: Bool
+    var horizontalPadding: CGFloat = 12
 
     var body: some View {
         Text(title)
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(isOn ? AnyShapeStyle(.black) : AnyShapeStyle(.primary))
-            .padding(.horizontal, 12)
+            .padding(.horizontal, horizontalPadding)
             .padding(.vertical, 7)
             .background(isOn ? AnyShapeStyle(.tint) : AnyShapeStyle(.quaternary), in: .capsule)
     }

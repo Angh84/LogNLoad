@@ -93,6 +93,32 @@ struct LoggingSessionTests {
         #expect(session.currentSet == squat.sortedSets[1])
     }
 
+    @Test func pickingAnExerciseAlreadyInTheWorkoutShowsTheToast() throws {
+        let squat = entry("Squat", false)
+        let session = LoggingSession(workout: workout)
+        session.add(exercise("Bench"))
+        #expect(session.toast == nil)
+
+        session.add(try #require(squat.exercise))
+
+        #expect(session.toast == "Squat is already in this Workout")
+    }
+
+    @Test func aCreatedExerciseIsStoredAndAddedWithOneEmptyTargetSet() throws {
+        let session = LoggingSession(workout: workout)
+        let created = Exercise(name: "Cable Fly", equipment: .cable, muscleEmphases: [MuscleEmphasis(muscleGroup: .lowerChest, weight: 1)])
+
+        session.create(created)
+
+        let entry = try #require(workout.sortedEntries.last)
+        #expect(entry.exercise == created)
+        #expect(entry.sortedSets.map { [$0.weight, Double($0.reps)] } == [[0, 0]])
+        #expect(session.currentEntry == entry)
+        #expect(session.currentSet == entry.sortedSets.first)
+        let fresh = ModelContext(container)
+        #expect(try fresh.fetch(FetchDescriptor<Exercise>()).contains { $0.name == "Cable Fly" })
+    }
+
     // MARK: Set loop
 
     static let tap = started.addingTimeInterval(600)

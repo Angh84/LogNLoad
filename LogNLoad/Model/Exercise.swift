@@ -42,6 +42,14 @@ extension SchemaV1 {
 extension Exercise {
     var weightConvention: WeightConvention? { equipment?.weightConvention }
 
+    /// The Exercise that holds `name` under the uniqueness rule: ignoring case, Archived Exercises included,
+    /// compared trimmed, as names are stored.
+    static func named(_ name: String, in context: ModelContext) -> Exercise? {
+        guard let name = trimmed(name) else { return nil }
+        let exercises = (try? context.fetch(FetchDescriptor<Exercise>())) ?? []
+        return exercises.first { $0.name?.caseInsensitiveCompare(name) == .orderedSame }
+    }
+
     /// Whether this Exercise can replace `other` in a swap or merge.
     func isCompatible(with other: Exercise) -> Bool {
         self != other
@@ -49,6 +57,21 @@ extension Exercise {
             && loadType == other.loadType
             && isUnilateral == other.isUnilateral
             && weightConvention == other.weightConvention
+    }
+
+    /// The picker's "Recent": up to 8 Exercises from finished Workouts, newest `startedAt` first, each once, a
+    /// Workout's Exercises in its Entry order. `workout`'s own and Archived Exercises are left out before counting.
+    static func recent(for workout: Workout, in context: ModelContext) -> [Exercise] {
+        var descriptor = FetchDescriptor<Workout>(predicate: #Predicate { $0.endedAt != nil })
+        descriptor.sortBy = [SortDescriptor(\.startedAt, order: .reverse)]
+        let finished = (try? context.fetch(descriptor)) ?? []
+        var recent: [Exercise] = []
+        for exercise in finished.lazy.flatMap(\.exercises) {
+            guard !exercise.isArchived, !workout.contains(exercise), !recent.contains(exercise) else { continue }
+            recent.append(exercise)
+            if recent.count == 8 { break }
+        }
+        return recent
     }
 
     /// Entries in any Workout, the Active Workout included.

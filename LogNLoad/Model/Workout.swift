@@ -49,6 +49,15 @@ extension Workout {
         (entries ?? []).sorted { $0.order < $1.order }
     }
 
+    /// Its Exercises in Entry order.
+    var exercises: [Exercise] {
+        sortedEntries.compactMap(\.exercise)
+    }
+
+    func contains(_ exercise: Exercise) -> Bool {
+        exercises.contains(exercise)
+    }
+
     /// Its name, else its first two Exercise names and "+N" for the rest.
     var title: String {
         if let name { return name }
