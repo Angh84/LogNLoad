@@ -48,4 +48,7 @@ extension SchemaV1 {
 
 extension WorkoutSet {
     var isWorkingSet: Bool { !isWarmUp }
+
+    /// In the Active Workout. In a finished Workout an empty `completedAt` means time unknown.
+    var isTarget: Bool { completedAt == nil }
 }
