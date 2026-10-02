@@ -29,6 +29,7 @@ struct LoggingView: View {
                     emptyWorkout
                 }
             }
+            .toast($session.toast)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

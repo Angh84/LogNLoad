@@ -242,4 +242,61 @@ struct ExerciseTests {
             MuscleEmphasis(muscleGroup: .upperBack, weight: 1),
         ]).bodyArea == .shoulders)
     }
+
+    // MARK: Name uniqueness
+
+    @Test func aNameMatchesAnExistingExerciseIgnoringCaseAndSurroundingSpace() throws {
+        let bench = exercise("Barbell Bench Press")
+        try context.save()
+
+        #expect(Exercise.named("barbell BENCH press", in: context) == bench)
+        #expect(Exercise.named("  Barbell Bench Press \n", in: context) == bench)
+        #expect(Exercise.named("Barbell Bench", in: context) == nil)
+        #expect(Exercise.named("   ", in: context) == nil)
+    }
+
+    @Test func anArchivedExerciseKeepsItsNameReserved() throws {
+        let archived = exercise("Pec Deck", isArchived: true)
+        try context.save()
+
+        #expect(Exercise.named("pec deck", in: context) == archived)
+    }
+
+    // MARK: Recent
+
+    @Test func recentListsExercisesByTheirLatestFinishedWorkoutThenItsEntryOrder() throws {
+        let squat = exercise("Squat"), bench = exercise("Bench"), row = exercise("Row"), curl = exercise("Curl")
+        let older = workout(day(26), endedAt: day(26, 18))
+        log(squat, in: older, [(60, 10)])
+        log(curl, in: older, [(10, 10)])
+        let newer = workout(day(28), endedAt: day(28, 18))
+        log(row, in: newer, [(50, 10)])
+        log(squat, in: newer, [(60, 10)])
+        let active = workout(day(30), endedAt: nil)
+        log(bench, in: active, [(40, 10)])
+        try context.save()
+
+        #expect(Exercise.recent(for: active, in: context) == [row, squat, curl])
+    }
+
+    @Test func recentLeavesOutTheWorkoutsOwnAndArchivedExercisesBeforeCountingToEight() throws {
+        let names = (1...10).map { "Exercise \($0)" }
+        let exercises = names.map { exercise($0) }
+        let finished = workout(day(28), endedAt: day(28, 18))
+        for exercise in exercises { log(exercise, in: finished, [(20, 10)]) }
+        exercises[0].isArchived = true
+        let active = workout(day(30), endedAt: nil)
+        log(exercises[1], in: active, [(20, 10)])
+        try context.save()
+
+        #expect(Exercise.recent(for: active, in: context) == Array(exercises[2...9]))
+    }
+
+    @Test func recentIsEmptyWithoutFinishedWorkouts() throws {
+        let active = workout(day(30), endedAt: nil)
+        log(exercise("Squat"), in: active, [(60, 10)])
+        try context.save()
+
+        #expect(Exercise.recent(for: active, in: context).isEmpty)
+    }
 }

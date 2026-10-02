@@ -15,6 +15,8 @@ final class LoggingSession {
     private(set) var isAskingRIR = false
     /// Up right after "Start Workout", and from the "+" chip and "Add Exercise".
     var isPickerPresented = false
+    /// A short message over the logging screen, which clears it after a moment.
+    var toast: String?
     /// The last Resume tap on the stale prompt. Kept in memory only, so a relaunch soon after Resume asks again.
     private var resumedAt: Date?
     /// When the stale prompt came up, while it is up.
@@ -27,11 +29,20 @@ final class LoggingSession {
         currentSet = currentEntry?.firstTargetSet
     }
 
-    /// Appends the Exercise's Entry, or goes to it when it is already in the Workout.
+    /// Appends the Exercise's Entry, or goes to it with a toast when it is already in the Workout.
     func add(_ exercise: Exercise) {
+        if workout.contains(exercise) {
+            toast = "\(exercise.name ?? "") is already in this Workout"
+        }
         let entry = workout.add(exercise)
         save()
         select(entry)
+    }
+
+    /// Saving the Exercise form from the picker's Create row: stores the new Exercise and adds it.
+    func create(_ exercise: Exercise) {
+        workout.modelContext?.insert(exercise)
+        add(exercise)
     }
 
     /// Makes the Entry current, on its first target Set.
