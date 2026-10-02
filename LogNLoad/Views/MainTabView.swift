@@ -6,6 +6,7 @@ struct MainTabView: View {
 
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(HealthSync.self) private var health
     @Query(filter: #Predicate<Workout> { $0.endedAt == nil }) private var activeWorkouts: [Workout]
     /// Kept while the cover is minimized, so expanding it keeps the current Entry and Set.
     @State private var session: LoggingSession?
@@ -68,12 +69,14 @@ struct MainTabView: View {
         isLoggingExpanded = true
     }
 
-    /// After Finish the cover closes onto History and the bar returns to "Start Workout".
+    /// After Finish the cover closes onto History, the bar returns to "Start Workout", and the Workout is
+    /// written to Health.
     private func finished() {
         finishes += 1
         justFinished = session?.workout.id
         tab = .history
         closeCover()
+        Task { await health.sync(in: context) }
     }
 
     /// The session goes at once, so nothing renders the finished or deleted Workout's records.
