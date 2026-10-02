@@ -110,6 +110,39 @@ enum DisplayFormat {
             + "\(count(workout.sortedEntries.count, "Exercise")), \(count(workout.workingSetCount, "Set"))"
     }
 
+    /// The month grid's heading: "September 2026".
+    static func monthHeading(_ month: Date, locale: Locale = .current, calendar: Calendar = .current) -> String {
+        month.formatted(Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone).month(.wide).year())
+    }
+
+    /// "N Workouts, N Sets" for the Workouts started in the month, Working Sets only; "No Workouts" without any.
+    static func monthSummary(_ month: Date, workouts: [Workout], calendar: Calendar = .current) -> String {
+        let inMonth = workouts.filter { $0.startedAt.map { calendar.isDate($0, equalTo: month, toGranularity: .month) } ?? false }
+        guard !inMonth.isEmpty else { return "No Workouts" }
+        return workoutCounts(inMonth)
+    }
+
+    /// "N Workouts, N Sets", Working Sets only: the week and month headers.
+    static func workoutCounts(_ workouts: [Workout]) -> String {
+        "\(count(workouts.count, "Workout")), \(count(workouts.map(\.workingSetCount).reduce(0, +), "Set"))"
+    }
+
+    /// The month grid's cells: a blank for each weekday before the 1st, by the calendar's first weekday, then each day.
+    static func monthDays(_ month: Date, calendar: Calendar = .current) -> [Date?] {
+        guard let interval = calendar.dateInterval(of: .month, for: month) else { return [] }
+        let leading = (calendar.component(.weekday, from: interval.start) - calendar.firstWeekday + 7) % 7
+        let dayCount = calendar.range(of: .day, in: .month, for: month)?.count ?? 0
+        let days = (0..<dayCount).compactMap { calendar.date(byAdding: .day, value: $0, to: interval.start) }
+        return Array(repeating: nil, count: leading) + days
+    }
+
+    /// Where paging to `month` scrolls the list: its newest Workout, else the nearest older one. `workouts` come
+    /// newest first.
+    static func pagingTarget(_ month: Date, workouts: [Workout], calendar: Calendar = .current) -> Workout? {
+        guard let end = calendar.dateInterval(of: .month, for: month)?.end else { return nil }
+        return workouts.first { ($0.startedAt ?? .distantFuture) < end }
+    }
+
     /// The weight stepper's label, by Load Type, then by weight convention.
     static func weightLabel(for exercise: Exercise) -> String {
         switch (exercise.loadType, exercise.equipment) {

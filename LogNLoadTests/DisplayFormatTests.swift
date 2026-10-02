@@ -275,4 +275,46 @@ struct DisplayFormatTests {
 
         #expect(DisplayFormat.historyLine(workout, locale: Self.british, calendar: Self.mondayCalendar) == "17:30, 1 h 10 min \u{2013} 1 Exercise, 1 Set")
     }
+
+    // MARK: Calendar
+
+    func finished(_ start: Date, workingSets: Int = 1) -> Workout {
+        let workout = Workout(startedAt: start, endedAt: start.addingTimeInterval(3600))
+        context.insert(workout)
+        let entry = ExerciseEntry(workout: workout, exercise: exercise(), order: 0)
+        for order in 0..<workingSets { _ = WorkoutSet(entry: entry, order: order, completedAt: start) }
+        _ = WorkoutSet(entry: entry, order: workingSets, isWarmUp: true, completedAt: start)
+        return workout
+    }
+
+    @Test func theMonthIsHeadedWithItsNameAndYear() {
+        #expect(DisplayFormat.monthHeading(date(2026, 9, 1, 0), locale: Self.british, calendar: Self.mondayCalendar) == "September 2026")
+    }
+
+    @Test func theMonthSummaryCountsItsWorkoutsAndWorkingSets() {
+        let workouts = [finished(date(2026, 10, 1), workingSets: 2), finished(date(2026, 9, 30), workingSets: 3), finished(date(2026, 9, 2), workingSets: 1)]
+
+        #expect(DisplayFormat.monthSummary(date(2026, 9, 1, 0), workouts: workouts, calendar: Self.mondayCalendar) == "2 Workouts, 4 Sets")
+        #expect(DisplayFormat.monthSummary(date(2026, 8, 1, 0), workouts: workouts, calendar: Self.mondayCalendar) == "No Workouts")
+    }
+
+    @Test func theMonthGridStartsOnTheRegionsFirstWeekday() {
+        let days = DisplayFormat.monthDays(date(2026, 9, 1, 0), calendar: Self.mondayCalendar)
+
+        #expect(days.prefix(2).map { $0 == nil } == [true, false])
+        #expect(days.compactMap(\.self).count == 30)
+        #expect(days[1] == date(2026, 9, 1, 0))
+    }
+
+    @Test func pagingGoesToTheMonthsNewestWorkoutElseTheNearestOlderOne() {
+        let october = finished(date(2026, 10, 1))
+        let lateSeptember = finished(date(2026, 9, 30))
+        let earlySeptember = finished(date(2026, 9, 2))
+        let june = finished(date(2026, 6, 15))
+        let workouts = [october, lateSeptember, earlySeptember, june]
+
+        #expect(DisplayFormat.pagingTarget(date(2026, 9, 1, 0), workouts: workouts, calendar: Self.mondayCalendar) == lateSeptember)
+        #expect(DisplayFormat.pagingTarget(date(2026, 8, 1, 0), workouts: workouts, calendar: Self.mondayCalendar) == june)
+        #expect(DisplayFormat.pagingTarget(date(2026, 5, 1, 0), workouts: workouts, calendar: Self.mondayCalendar) == nil)
+    }
 }
