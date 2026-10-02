@@ -1,0 +1,29 @@
+# The simulator harness (docs/agents/build.md, Drive the app): the app plus a UI-driving target,
+# kept out of the app's own project because the app has no UI tests.
+# Paths are relative to the repo root, so generate with:
+#   xcodegen generate --spec tools/sim/project.yml --project-root . --project .
+include:
+  - project.yml
+name: LogNLoadSim
+targets:
+  LogNLoadSim:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - tools/sim/Harness.swift
+      - tools/sim/Flows
+    dependencies:
+      - target: LogNLoad
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.angh84.lognload.sim
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  LogNLoadSim:
+    build:
+      targets:
+        LogNLoad: all
+        LogNLoadSim: [test]
+    test:
+      targets:
+        - LogNLoadSim

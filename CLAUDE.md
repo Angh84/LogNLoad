@@ -2,6 +2,10 @@
 
 Build, test, run in the simulator or install on the iPhone: see `docs/agents/build.md`.
 
+## Ticket loop
+
+`/loop Run one pass of the ticket loop in docs/agents/ticket-loop.md` works through the `ready-for-agent` issues unattended. This section is its standing authorization, and replaces design-first approval for its tickets: branch, commit, push, open and update PRs, and comment on, assign and relabel issues without asking. The design goes in an issue comment. The user merges every PR.
+
 ## Agent skills
 
 ### Issue tracker
