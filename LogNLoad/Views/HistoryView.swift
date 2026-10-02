@@ -41,6 +41,7 @@ private struct HistoryList: View {
     @Query(filter: #Predicate<Workout> { $0.endedAt != nil }, sort: \Workout.startedAt, order: .reverse)
     private var workouts: [Workout]
     @State private var highlighted: UUID?
+    @State private var month = HistoryCalendarView.monthStart(of: .now)
 
     var body: some View {
         if workouts.isEmpty {
@@ -57,6 +58,16 @@ private struct HistoryList: View {
     private var list: some View {
         ScrollViewReader { proxy in
             List {
+                // The spec's fallback for the collapsing week strip: the grid scrolls away as the list's header.
+                HistoryCalendarView(month: $month, workouts: workouts) { workout in
+                    withAnimation { proxy.scrollTo(workout.id, anchor: .top) }
+                } onPage: { month in
+                    if let target = DisplayFormat.pagingTarget(month, workouts: workouts) {
+                        withAnimation { proxy.scrollTo(target.id, anchor: .top) }
+                    }
+                }
+                .id(Self.calendarID)
+                .listRowSeparator(.hidden)
                 ForEach(DisplayFormat.historyWeeks(workouts), id: \.start) { week in
                     weekSection(start: week.start, workouts: week.workouts)
                 }
@@ -65,7 +76,8 @@ private struct HistoryList: View {
             .onChange(of: justFinished, initial: true) { _, id in
                 guard let id else { return }
                 highlighted = id
-                withAnimation { proxy.scrollTo(id, anchor: .top) }
+                month = HistoryCalendarView.monthStart(of: workouts.first { $0.id == id }?.startedAt ?? .now)
+                withAnimation { proxy.scrollTo(Self.calendarID, anchor: .top) }
                 Task {
                     try? await Task.sleep(for: .seconds(2))
                     withAnimation { highlighted = nil }
@@ -74,10 +86,11 @@ private struct HistoryList: View {
         }
     }
 
+    private static let calendarID = "calendar"
+
     /// A sticky week header with its counts, then the week's Workouts.
     private func weekSection(start: Date, workouts: [Workout]) -> some View {
-        let sets = workouts.map(\.workingSetCount).reduce(0, +)
-        return Section {
+        Section {
             ForEach(workouts) { workout in
                 NavigationLink(value: workout) {
                     row(workout)
@@ -92,7 +105,7 @@ private struct HistoryList: View {
             HStack {
                 Text(DisplayFormat.weekHeading(start))
                 Spacer()
-                Text("\(DisplayFormat.count(workouts.count, "Workout")), \(DisplayFormat.count(sets, "Set"))")
+                Text(DisplayFormat.workoutCounts(workouts))
                     .foregroundStyle(.secondary)
             }
         }
