@@ -58,6 +58,17 @@ extension Workout {
         exercises.contains { $0.id == exercise.id }
     }
 
+    /// Swap: the Entry changes to `exercise`, keeping its Sets and note. When the Workout already has an Entry for
+    /// `exercise`, the two combine into that one.
+    func swap(_ entry: ExerciseEntry, to exercise: Exercise) -> ExerciseEntry {
+        if let existing = sortedEntries.first(where: { $0 != entry && $0.exercise?.id == exercise.id }) {
+            existing.absorb(entry)
+            return existing
+        }
+        entry.exercise = exercise
+        return entry
+    }
+
     /// Two Workouts overlap when each starts before the other ends. The Active Workout ends `now`.
     func overlaps(_ other: Workout, now: Date) -> Bool {
         guard let start = startedAt, let otherStart = other.startedAt else { return false }

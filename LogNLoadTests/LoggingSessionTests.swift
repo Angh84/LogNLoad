@@ -726,4 +726,25 @@ struct LoggingSessionTests {
 
         #expect(Exercise.named("zercher squat", in: editContext)?.name == "Zercher Squat")
     }
+
+    @Test func aSwapWhileEditingMakesTheRemainingEntryCurrentAndIsSavedWithDone() throws {
+        let finished = try finishedWorkout([60, 70], [40])
+        let incline = exercise("Incline Bench")
+        try context.save()
+        let session = try #require(LoggingSession.editing(finished))
+        let second = session.workout.sortedEntries[1]
+
+        session.swap(second, to: incline)
+        #expect(session.currentEntry == second)
+        #expect(second.exercise?.name == "Incline Bench")
+
+        session.swap(session.workout.sortedEntries[0], to: incline)
+        #expect(session.workout.sortedEntries.count == 1)
+        #expect(session.currentEntry?.exercise?.name == "Incline Bench")
+        #expect(session.currentSet?.weight == 40)
+
+        session.saveEdit()
+        let saved = try #require(try stored(finished))
+        #expect(saved.sortedEntries.map { $0.sortedSets.map(\.weight) } == [[40, 60, 70]])
+    }
 }

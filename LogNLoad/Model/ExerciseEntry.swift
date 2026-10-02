@@ -51,6 +51,21 @@ extension ExerciseEntry {
         sortedSets.filter { !$0.isTarget }
     }
 
+    /// Combining Entries, which swap and merge share: this Entry stays, at the earlier of the two positions, with its
+    /// own Sets then `entry`'s, each in order, and the two notes joined with a newline. `entry` is deleted.
+    func absorb(_ entry: ExerciseEntry) {
+        guard entry != self else { return }
+        order = min(entry.order, order)
+        let offset = (sortedSets.last?.order ?? -1) + 1
+        for (index, set) in entry.sortedSets.enumerated() {
+            set.entry = self
+            set.order = offset + index
+        }
+        note = trimmed([note, entry.note].compactMap(\.self).joined(separator: "\n"))
+        modelContext?.delete(entry)
+        modelContext?.processPendingChanges()
+    }
+
     /// Whether Finish keeps this Entry.
     var hasCompletedSet: Bool {
         !completedSets.isEmpty

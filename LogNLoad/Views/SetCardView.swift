@@ -88,6 +88,9 @@ struct SetCardView: View {
                 noteDraft = entry.note ?? ""
                 isEditingEntryNote = true
             }
+            if session.isEditing {
+                Button("Swap Exercise", systemImage: "arrow.left.arrow.right") { session.swappingEntry = entry }
+            }
             Button("Remove Exercise", systemImage: "trash", role: .destructive) {
                 entryToRemove = session.requestRemoval(of: entry)
             }

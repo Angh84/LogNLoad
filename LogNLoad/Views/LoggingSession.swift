@@ -19,6 +19,8 @@ final class LoggingSession {
     var isPickerPresented = false
     /// A short message over the logging screen, which clears it after a moment.
     var toast: String?
+    /// Edit mode: the Entry whose "Swap Exercise" picker is up.
+    var swappingEntry: ExerciseEntry?
     /// The last Resume tap on the stale prompt. Kept in memory only, so a relaunch soon after Resume asks again.
     private var resumedAt: Date?
     /// When the stale prompt came up, while it is up.
@@ -50,14 +52,26 @@ final class LoggingSession {
 
     /// Appends the Exercise's Entry, or goes to it with a toast when it is already in the Workout.
     func add(_ exercise: Exercise) {
-        // The picker's Exercises live in the main context; an edit session works in its own.
-        let exercise = workout.modelContext?.model(for: exercise.persistentModelID) as? Exercise ?? exercise
+        let exercise = inSessionContext(exercise)
         if workout.contains(exercise) {
             toast = "\(exercise.name ?? "") is already in this Workout"
         }
         let entry = workout.add(exercise)
         save()
         select(entry)
+    }
+
+    /// Edit mode's "Swap Exercise": the Entry changes Exercise, or combines with that Exercise's Entry, and the
+    /// remaining Entry becomes current.
+    func swap(_ entry: ExerciseEntry, to exercise: Exercise) {
+        let remaining = workout.swap(entry, to: inSessionContext(exercise))
+        save()
+        select(remaining)
+    }
+
+    /// The picker's Exercises live in the main context; an edit session works in its own.
+    private func inSessionContext(_ exercise: Exercise) -> Exercise {
+        workout.modelContext?.model(for: exercise.persistentModelID) as? Exercise ?? exercise
     }
 
     /// Saving the Exercise form from the picker's Create row: stores the new Exercise and adds it.

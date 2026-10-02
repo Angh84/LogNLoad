@@ -441,4 +441,77 @@ struct WorkoutTests {
         #expect(workout.overlaps(active, now: day(30)))
         #expect(!workout.overlaps(Workout(startedAt: day(29)), now: day(29, 1)))
     }
+
+    // MARK: Swap and combine
+
+    @Test func combiningKeepsTheTargetAtTheEarlierPositionWithItsSetsFirstAndTheNotesJoined() throws {
+        let workout = Workout(startedAt: day(28), endedAt: day(28, 18))
+        context.insert(workout)
+        let x = entry("Bench", in: workout, note: "Wide grip", true, true)
+        let middle = entry("Row", in: workout, true)
+        let y = entry("Incline Bench", in: workout, note: "Seat 3", true)
+        x.sortedSets[0].weight = 50
+        x.sortedSets[1].weight = 55
+        y.sortedSets[0].weight = 40
+        try context.save()
+
+        y.absorb(x)
+        try context.save()
+
+        #expect(workout.sortedEntries == [y, middle])
+        #expect(y.sortedSets.map(\.weight) == [40, 50, 55])
+        #expect(y.note == "Seat 3\nWide grip")
+        #expect(try context.fetchCount(FetchDescriptor<ExerciseEntry>()) == 2)
+    }
+
+    @Test func anEmptyNoteAddsNothingWhenCombining() throws {
+        let workout = Workout(startedAt: day(28), endedAt: day(28, 18))
+        context.insert(workout)
+        let x = entry("Bench", in: workout, note: "Wide grip", true)
+        let y = entry("Incline Bench", in: workout, true)
+
+        y.absorb(x)
+
+        #expect(y.note == "Wide grip")
+    }
+
+    @Test func anEntryNeverAbsorbsItself() throws {
+        let workout = Workout(startedAt: day(28), endedAt: day(28, 18))
+        context.insert(workout)
+        let bench = entry("Bench", in: workout, true)
+
+        bench.absorb(bench)
+
+        #expect(workout.sortedEntries == [bench])
+        #expect(bench.sortedSets.count == 1)
+    }
+
+    @Test func swappingKeepsTheEntrysSetsAndNote() throws {
+        let workout = Workout(startedAt: day(28), endedAt: day(28, 18))
+        context.insert(workout)
+        let bench = entry("Bench", in: workout, note: "Wide grip", true, true)
+        let sets = bench.sortedSets
+        let incline = Exercise(name: "Incline Bench", equipment: .barbell, muscleEmphases: [MuscleEmphasis(muscleGroup: .upperChest, weight: 1)])
+        context.insert(incline)
+
+        let swapped = workout.swap(bench, to: incline)
+
+        #expect(swapped == bench)
+        #expect(bench.exercise == incline)
+        #expect(bench.sortedSets == sets)
+        #expect(bench.note == "Wide grip")
+    }
+
+    @Test func swappingToAnExerciseAlreadyInTheWorkoutCombinesTheEntries() throws {
+        let workout = Workout(startedAt: day(28), endedAt: day(28, 18))
+        context.insert(workout)
+        let bench = entry("Bench", in: workout, true)
+        let incline = entry("Incline Bench", in: workout, true, true)
+
+        let swapped = workout.swap(bench, to: try #require(incline.exercise))
+
+        #expect(swapped == incline)
+        #expect(workout.sortedEntries == [incline])
+        #expect(incline.sortedSets.count == 3)
+    }
 }
