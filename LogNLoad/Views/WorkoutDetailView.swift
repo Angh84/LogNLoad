@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 /// A finished Workout: its tiles and note, one collapsible row per Entry, and "Delete Workout".
@@ -7,6 +8,8 @@ struct WorkoutDetailView: View {
     /// Not remembered: every visit starts collapsed.
     @State private var expanded: Set<UUID> = []
     @State private var workoutToDelete: Workout?
+    @Query(filter: #Predicate<Workout> { $0.endedAt == nil }) private var activeWorkouts: [Workout]
+    @State private var editSession: LoggingSession?
 
     var body: some View {
         // Deleted while the detail is still on its way out.
@@ -19,6 +22,11 @@ struct WorkoutDetailView: View {
 
     private var content: some View {
         List {
+            if !activeWorkouts.isEmpty {
+                Text("Finish or discard your current Workout to edit.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
             Section {
                 HStack(spacing: 8) {
                     tile("Duration", value: duration.value, detail: duration.times)
@@ -42,9 +50,18 @@ struct WorkoutDetailView: View {
                 Button("Delete Workout", role: .destructive) { workoutToDelete = workout }
             }
         }
-        .navigationTitle(workout.name ?? unnamedTitle)
+        .navigationTitle(workout.name ?? workout.startedAt.map { DisplayFormat.workoutDate($0) } ?? "")
         .navigationSubtitle(workout.name == nil ? workout.sortedEntries.compactMap(\.exercise?.name).joined(separator: ", ") : "")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Edit") { editSession = LoggingSession.editing(workout) }
+                    .disabled(!activeWorkouts.isEmpty)
+            }
+        }
+        .fullScreenCover(item: $editSession) { session in
+            LoggingView(session: session, onDeleteWorkout: { onDelete(workout) })
+        }
         .deleteWorkoutConfirm($workoutToDelete, onDelete: onDelete)
     }
 
@@ -139,10 +156,5 @@ struct WorkoutDetailView: View {
     private var duration: (value: String, times: String) {
         guard let start = workout.startedAt, let end = workout.endedAt else { return ("", "") }
         return (DisplayFormat.duration(from: start, to: end), (start..<max(start, end)).formatted(.interval.hour().minute()))
-    }
-
-    /// "Wednesday 30 Sep", the title of an unnamed Workout.
-    private var unnamedTitle: String {
-        workout.startedAt?.formatted(.dateTime.weekday(.wide).day().month(.abbreviated)) ?? ""
     }
 }

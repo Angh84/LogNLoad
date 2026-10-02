@@ -49,8 +49,9 @@ extension SchemaV1 {
 extension WorkoutSet {
     var isWorkingSet: Bool { !isWarmUp }
 
-    /// In the Active Workout. In a finished Workout an empty `completedAt` means time unknown.
-    var isTarget: Bool { completedAt == nil }
+    /// Only in the Active Workout: in a finished Workout every Set is completed, and an empty `completedAt` means
+    /// time unknown.
+    var isTarget: Bool { completedAt == nil && entry?.workout?.isActive != false }
 
     /// A Warm-up Set never has an RIR, so marking one clears it; marking it a Working Set again leaves it empty.
     func setWarmUp(_ isWarmUp: Bool) {

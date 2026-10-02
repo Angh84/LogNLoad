@@ -1,10 +1,13 @@
 import SwiftUI
 
-/// The Focus logging screen for the Active Workout, shown as the logging cover.
+/// The Focus logging screen, shown as a full-screen cover: for the Active Workout, or in edit mode for a finished one.
 struct LoggingView: View {
     @Bindable var session: LoggingSession
-    let onFinish: () -> Void
-    let onDiscard: () -> Void
+    /// The Active Workout only.
+    var onFinish: () -> Void = {}
+    var onDiscard: () -> Void = {}
+    /// Edit mode only: Done on a Workout left without Sets deletes it.
+    var onDeleteWorkout: () -> Void = {}
     @Environment(\.dismiss) private var dismiss
     /// The tap time of "Finish", the end time unless the user picks the last Set's.
     @State private var finishTappedAt = Date.now
@@ -32,20 +35,23 @@ struct LoggingView: View {
             .toast($session.toast)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Minimize", systemImage: "chevron.down") { dismiss() }
-                }
-                ToolbarItem(placement: .principal) {
-                    ElapsedTimer(workout: session.workout)
-                        .font(.headline.monospacedDigit())
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: tapFinish) {
-                        Text("Finish").fontWeight(.semibold).foregroundStyle(.black)
+                if !session.isEditing {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Minimize", systemImage: "chevron.down") { dismiss() }
                     }
-                    .buttonStyle(.borderedProminent)
+                    ToolbarItem(placement: .principal) {
+                        ElapsedTimer(workout: session.workout)
+                            .font(.headline.monospacedDigit())
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(action: tapFinish) {
+                            Text("Finish").fontWeight(.semibold).foregroundStyle(.black)
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
                 }
             }
+            .modifier(EditModeChrome(session: session, onDeleteWorkout: onDeleteWorkout))
             .sheet(isPresented: $session.isPickerPresented) {
                 ExercisePickerView(session: session)
             }
@@ -336,5 +342,130 @@ private struct SetsLog: View {
                 .opacity(set.isTarget ? 0 : 1)
         }
         .contentShape(.rect)
+    }
+}
+
+/// Edit mode on the Focus screen: the purple nav bar with Cancel and Done, the banner with the Start and End pickers,
+/// and the checks Done runs before it saves. It leaves the Active Workout's screen as it is.
+private struct EditModeChrome: ViewModifier {
+    let session: LoggingSession
+    /// Done on a Workout left without Sets deletes it instead, as the detail's Delete does.
+    let onDeleteWorkout: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var problem: LoggingSession.DoneProblem?
+    @State private var isConfirmingCancel = false
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if session.isEditing {
+            editMode(content)
+        } else {
+            content
+        }
+    }
+
+    private func editMode(_ content: Content) -> some View {
+        content
+            .safeAreaInset(edge: .top, spacing: 0) {
+                EditBanner(workout: session.workout)
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        if session.hasEdits { isConfirmingCancel = true } else { dismiss() }
+                    }
+                }
+                ToolbarItem(placement: .principal) {
+                    Text("Editing Workout").font(.headline)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done", action: done).fontWeight(.semibold)
+                }
+            }
+            .toolbarBackground(Color.purple.opacity(0.55), for: .navigationBar)
+            .toolbarBackgroundVisibility(.visible, for: .navigationBar)
+            .alert("Discard your changes?", isPresented: $isConfirmingCancel) {
+                Button("Keep Editing", role: .cancel) {}
+                Button("Discard", role: .destructive) {
+                    session.cancelEdit()
+                    dismiss()
+                }
+            }
+            .alert("Can't save these times", isPresented: isShowing(.endNotAfterStart, .endInFuture)) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(problem == .endInFuture ? "The end time can't be in the future." : "The end time must be after the start time.")
+            }
+            .alert(
+                "Overlaps \(problem?.overlapping?.title ?? "")",
+                isPresented: Binding { problem?.overlapping != nil } set: { if !$0 { problem = nil } },
+                presenting: problem?.overlapping
+            ) { _ in
+                Button("OK", role: .cancel) {}
+            } message: { other in
+                Text("That Workout ran \(whenItRan(other)). Change the start or end time so they don't overlap.")
+            }
+            .alert("Delete this Workout?", isPresented: isShowing(.noSets)) {
+                Button("Keep Editing", role: .cancel) {}
+                Button("Delete", role: .destructive) {
+                    session.cancelEdit()
+                    dismiss()
+                    onDeleteWorkout()
+                }
+            } message: {
+                Text("You removed every Set, so saving would leave an empty Workout. It is deleted instead, from history and from Health.")
+            }
+    }
+
+    /// Done saves the whole edit, or names the first rule it breaks.
+    private func done() {
+        if let problem = session.doneProblem(now: .now) {
+            self.problem = problem
+        } else {
+            session.saveEdit()
+            dismiss()
+        }
+    }
+
+    private func isShowing(_ problems: LoggingSession.DoneProblem...) -> Binding<Bool> {
+        Binding { problem.map(problems.contains) ?? false } set: { if !$0 { problem = nil } }
+    }
+
+    /// "Tuesday 22 Sep, 17:30 to 18:40"; the Active Workout runs to now.
+    private func whenItRan(_ other: Workout) -> String {
+        let time = Date.FormatStyle().hour().minute()
+        guard let start = other.startedAt else { return "" }
+        return "\(DisplayFormat.workoutDate(start)), \(start.formatted(time)) to \((other.endedAt ?? .now).formatted(time))"
+    }
+}
+
+/// The "Editing" tag with the Workout's date, Start and End, and the hint about what Done saves.
+private struct EditBanner: View {
+    let workout: Workout
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text("Editing")
+                    .font(.caption.weight(.bold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(.purple, in: .capsule)
+                Text(workout.startedAt.map { DisplayFormat.workoutDate($0) } ?? "")
+                    .font(.subheadline.weight(.semibold))
+            }
+            DatePicker("Start", selection: time(\.startedAt), displayedComponents: [.date, .hourAndMinute])
+            DatePicker("End", selection: time(\.endedAt), displayedComponents: [.date, .hourAndMinute])
+            Text("Sets you add count as completed, with time unknown. Nothing is saved until you tap Done.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .datePickerStyle(.compact)
+        .padding()
+        .background(Color.purple.opacity(0.18))
+    }
+
+    private func time(_ keyPath: ReferenceWritableKeyPath<Workout, Date?>) -> Binding<Date> {
+        Binding { workout[keyPath: keyPath] ?? .now } set: { workout[keyPath: keyPath] = $0 }
     }
 }

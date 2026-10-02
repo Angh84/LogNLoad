@@ -287,6 +287,10 @@ struct DisplayFormatTests {
         return workout
     }
 
+    @Test func aWorkoutsDateIsItsWeekdayDayAndMonth() {
+        #expect(DisplayFormat.workoutDate(date(2026, 9, 30), locale: Self.british, calendar: Self.mondayCalendar) == "Wednesday 30 Sep")
+    }
+
     @Test func theMonthIsHeadedWithItsNameAndYear() {
         #expect(DisplayFormat.monthHeading(date(2026, 9, 1, 0), locale: Self.british, calendar: Self.mondayCalendar) == "September 2026")
     }

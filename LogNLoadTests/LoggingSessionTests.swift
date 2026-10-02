@@ -532,4 +532,198 @@ struct LoggingSessionTests {
         session.select(bench)
         #expect(session.nextEntry == nil)
     }
+
+    // MARK: Edit mode
+
+    static let earlier = DateComponents(calendar: .current, year: 2026, month: 9, day: 28, hour: 17).date!
+
+    /// A finished Workout two days before the Active one, with one Entry per list of Set weights.
+    func finishedWorkout(_ weightsPerEntry: [Double]...) throws -> Workout {
+        let finished = Workout(startedAt: Self.earlier, endedAt: Self.earlier.addingTimeInterval(3600))
+        context.insert(finished)
+        for (order, weights) in weightsPerEntry.enumerated() {
+            let entry = ExerciseEntry(workout: finished, exercise: exercise("Exercise \(order)"), order: order)
+            for (setOrder, weight) in weights.enumerated() {
+                _ = WorkoutSet(entry: entry, order: setOrder, weight: weight, reps: 10, completedAt: Self.earlier)
+            }
+        }
+        try context.save()
+        return finished
+    }
+
+    func stored(_ workout: Workout) throws -> Workout? {
+        let id = workout.id
+        return try ModelContext(container).fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.id == id })).first
+    }
+
+    @Test func anEditSessionOpensOnTheFirstSetInItsOwnContext() throws {
+        let finished = try finishedWorkout([60, 70], [40])
+        let session = try #require(LoggingSession.editing(finished))
+
+        #expect(session.isEditing)
+        #expect(session.workout.modelContext !== context)
+        #expect(session.currentEntry == session.workout.sortedEntries.first)
+        #expect(session.currentSet?.weight == 60)
+    }
+
+    @Test func editsWaitForDoneAndDoneSavesThem() throws {
+        let finished = try finishedWorkout([60])
+        let session = try #require(LoggingSession.editing(finished))
+
+        session.changeWeight(to: 65)
+        #expect(try stored(finished)?.sortedEntries.first?.sortedSets.first?.weight == 60)
+
+        session.saveEdit()
+        #expect(try stored(finished)?.sortedEntries.first?.sortedSets.first?.weight == 65)
+    }
+
+    @Test func cancelDiscardsTheEditAndLeavesTheActiveWorkoutAlone() throws {
+        entry("Bench", false)
+        try context.save()
+        let finished = try finishedWorkout([60])
+        let active = LoggingSession(workout: workout)
+        let session = try #require(LoggingSession.editing(finished))
+        workout.name = "Unsaved in the Active Workout"
+
+        session.changeWeight(to: 65)
+        session.cancelEdit()
+
+        #expect(try stored(finished)?.sortedEntries.first?.sortedSets.first?.weight == 60)
+        #expect(workout.name == "Unsaved in the Active Workout")
+        #expect(active.currentEntry?.exercise?.name == "Bench")
+    }
+
+    @Test func doneChecksTheTimesInTheSpecsOrder() throws {
+        let finished = try finishedWorkout([60])
+        let session = try #require(LoggingSession.editing(finished))
+        let now = Self.started.addingTimeInterval(3600)
+
+        session.workout.endedAt = session.workout.startedAt
+        #expect(session.doneProblem(now: now) == .endNotAfterStart)
+
+        session.workout.endedAt = now.addingTimeInterval(60)
+        #expect(session.doneProblem(now: now) == .endInFuture)
+
+        session.workout.endedAt = Self.earlier.addingTimeInterval(1800)
+        #expect(session.doneProblem(now: now) == nil)
+    }
+
+    @Test func doneRefusesAnOverlapWithAnotherWorkoutTheActiveOneIncluded() throws {
+        let finished = try finishedWorkout([60])
+        let other = Workout(startedAt: Self.earlier.addingTimeInterval(-7200), endedAt: Self.earlier.addingTimeInterval(-3600))
+        context.insert(other)
+        try context.save()
+        let session = try #require(LoggingSession.editing(finished))
+        let now = Self.started.addingTimeInterval(3600)
+
+        session.workout.startedAt = Self.earlier.addingTimeInterval(-5400)
+        #expect(session.doneProblem(now: now)?.overlapping?.id == other.id)
+
+        session.workout.startedAt = Self.earlier
+        session.workout.endedAt = Self.started.addingTimeInterval(60)
+        #expect(session.doneProblem(now: now)?.overlapping?.id == workout.id)
+    }
+
+    @Test func doneOffersToDeleteAWorkoutLeftWithoutSets() throws {
+        let finished = try finishedWorkout([60])
+        let session = try #require(LoggingSession.editing(finished))
+
+        session.delete(try #require(session.currentSet))
+
+        #expect(session.doneProblem(now: Self.started) == .noSets)
+    }
+
+    @Test func savingDropsEntriesLeftWithoutSets() throws {
+        let finished = try finishedWorkout([60], [40])
+        let session = try #require(LoggingSession.editing(finished))
+        session.select(session.workout.sortedEntries[1])
+
+        session.delete(try #require(session.currentSet))
+        session.saveEdit()
+
+        #expect(try stored(finished)?.sortedEntries.count == 1)
+    }
+
+    @Test func deletingTheCurrentSetWhileEditingGoesToTheFollowingThenThePreviousSet() throws {
+        let finished = try finishedWorkout([60, 70, 80])
+        let session = try #require(LoggingSession.editing(finished))
+        let sets = session.workout.sortedEntries[0].sortedSets
+        session.select(sets[1])
+
+        session.delete(sets[1])
+        #expect(session.currentSet == sets[2])
+        #expect(session.workout.sortedEntries[0].sortedSets.count == 2)
+
+        session.delete(sets[2])
+        #expect(session.currentSet == sets[0])
+
+        session.delete(sets[0])
+        #expect(session.currentSet == nil)
+        #expect(session.heading == "No Sets")
+    }
+
+    @Test func nextSetWhileEditingIsTheFollowingSet() throws {
+        let finished = try finishedWorkout([60, 70])
+        let session = try #require(LoggingSession.editing(finished))
+
+        #expect(session.followingSet?.weight == 70)
+        session.nextSet()
+        #expect(session.currentSet?.weight == 70)
+        #expect(session.followingSet == nil)
+    }
+
+    @Test func anExercisePickedWhileEditingJoinsTheEditAndIsSavedWithIt() throws {
+        let finished = try finishedWorkout([60])
+        let session = try #require(LoggingSession.editing(finished))
+        let curl = exercise("Curl")
+        try context.save()
+
+        session.add(curl)
+        session.addSet()
+        session.saveEdit()
+
+        let saved = try #require(try stored(finished))
+        #expect(saved.sortedEntries.map { $0.exercise?.name } == ["Exercise 0", "Curl"])
+        #expect(saved.sortedEntries[1].sortedSets.count == 2)
+        #expect(saved.sortedEntries[1].sortedSets.allSatisfy { $0.completedAt == nil && !$0.isTarget })
+    }
+
+    @Test func doneReachesTheMainContextsCopyOfTheWorkout() throws {
+        let finished = try finishedWorkout([60])
+        let session = try #require(LoggingSession.editing(finished))
+
+        session.changeWeight(to: 65)
+        session.changeWorkoutName(to: "Legs")
+        session.saveEdit()
+
+        #expect(finished.name == "Legs")
+        #expect(finished.sortedEntries.first?.sortedSets.first?.weight == 65)
+    }
+
+    @Test func doneReachesTheMainContextsExerciseHistory() throws {
+        let finished = try finishedWorkout([60])
+        let removed = try #require(finished.sortedEntries.first?.exercise)
+        let curl = exercise("Curl")
+        try context.save()
+        #expect(removed.lastPerformance?.map(\.weight) == [60])
+        let session = try #require(LoggingSession.editing(finished))
+
+        session.remove(try #require(session.currentEntry))
+        session.add(curl)
+        session.changeWeight(to: 25)
+        session.saveEdit()
+
+        #expect(removed.lastPerformance == nil)
+        #expect(curl.lastPerformance?.map(\.weight) == [25])
+    }
+
+    @Test func anExerciseCreatedWhileEditingHoldsItsNameBeforeDone() throws {
+        let finished = try finishedWorkout([60])
+        let session = try #require(LoggingSession.editing(finished))
+        let editContext = try #require(session.workout.modelContext)
+
+        session.create(Exercise(name: "Zercher Squat", equipment: .barbell, muscleEmphases: [MuscleEmphasis(muscleGroup: .quads, weight: 1)]))
+
+        #expect(Exercise.named("zercher squat", in: editContext)?.name == "Zercher Squat")
+    }
 }

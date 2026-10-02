@@ -126,7 +126,9 @@ struct SetCardView: View {
 
     @ViewBuilder
     private func actions(for set: WorkoutSet) -> some View {
-        if session.isAskingRIR {
+        if session.isEditing {
+            editActions(for: set)
+        } else if session.isAskingRIR {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Reps in reserve?")
                     .font(.headline)
@@ -187,23 +189,51 @@ struct SetCardView: View {
             HStack(spacing: 8) {
                 Button("Add Set", action: session.addSet)
                     .buttonStyle(.bordered)
-                Group {
-                    if let next = session.nextEntry {
-                        Button { session.select(next) } label: {
-                            Text("Next: \(next.exercise?.name ?? "")").foregroundStyle(.black).frame(maxWidth: .infinity)
-                        }
-                    } else {
-                        Button { session.isPickerPresented = true } label: {
-                            Text("Add Exercise").foregroundStyle(.black).frame(maxWidth: .infinity)
-                        }
-                    }
-                }
-                .buttonStyle(.borderedProminent)
+                onwardButton
             }
             .lineLimit(1)
             .controlSize(.large)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    /// Edit mode: every Set is completed, so no Complete Set; "Add Set", then the following Set or onward.
+    private func editActions(for set: WorkoutSet) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(set.completedAt.map { "Completed \($0.formatted(.dateTime.hour().minute()))" } ?? "Completed, time unknown")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            HStack(spacing: 8) {
+                Button("Add Set", action: session.addSet)
+                    .buttonStyle(.bordered)
+                if session.followingSet != nil {
+                    Button { session.nextSet() } label: {
+                        Text("Next Set").foregroundStyle(.black).frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                } else {
+                    onwardButton
+                }
+            }
+            .lineLimit(1)
+            .controlSize(.large)
+        }
+    }
+
+    /// "Next: <Exercise>", or "Add Exercise" on the last Entry.
+    private var onwardButton: some View {
+        Group {
+            if let next = session.nextEntry {
+                Button { session.select(next) } label: {
+                    Text("Next: \(next.exercise?.name ?? "")").foregroundStyle(.black).frame(maxWidth: .infinity)
+                }
+            } else {
+                Button { session.isPickerPresented = true } label: {
+                    Text("Add Exercise").foregroundStyle(.black).frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .buttonStyle(.borderedProminent)
     }
 }
 
