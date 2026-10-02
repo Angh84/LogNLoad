@@ -54,10 +54,12 @@ The simulator runs without its window here, so a screen is checked by driving th
 ```bash
 tools/sim/store.sh backup
 xcodegen generate --spec tools/sim/project.yml --project-root . --project .
-TEST_RUNNER_SHOTS=<folder> xcodebuild test -project LogNLoadSim.xcodeproj -scheme LogNLoadSim -destination 'platform=iOS Simulator,name=iPhone 17e' -only-testing:LogNLoadSim/<Flow>/<test> 2>&1 | grep -E "error:|TEST (SUCCEEDED|FAILED)"
+TEST_RUNNER_SHOTS=<folder> xcodebuild test -project LogNLoadSim.xcodeproj -scheme LogNLoadSim -destination 'platform=iOS Simulator,name=iPhone 17e' -collect-test-diagnostics never -only-testing:LogNLoadSim/<Flow>/<test> 2>&1 | grep -E "error:|TEST (SUCCEEDED|FAILED)"
 tools/sim/store.sh restore
 ```
 
 - Write each check as a flow file in `tools/sim/Flows/`, subclassing `Harness` like `Example.swift`; `shot("<name>")` saves `<folder>/<name>.png`, which Read shows. Flow files other than the example stay uncommitted.
 - `backup` first and `restore` last keep the simulator's own data. In between, `store.sh apply "<sql>"` resets to that baseline and runs the SQL, so each flow starts from a known state: build the state through a flow, then age it with `apply`. Tables are `ZWORKOUT`, `ZEXERCISEENTRY`, `ZWORKOUTSET` and `ZEXERCISE`, and dates are seconds since 2001-01-01: `store.sh now` prints the current one.
+- `-collect-test-diagnostics never` keeps a failed flow from collecting diagnostics for about 10 minutes.
+- Under a sheet, `app.cells` still holds the logging screen's rows, so find a sheet's rows by label rather than by index.
 - For a check that depends on the clock, like the 3 h stale prompt, run `build-for-testing` first, then `apply`, then `test-without-building` with the same arguments, so the build's duration doesn't move the times.

@@ -51,4 +51,10 @@ extension WorkoutSet {
 
     /// In the Active Workout. In a finished Workout an empty `completedAt` means time unknown.
     var isTarget: Bool { completedAt == nil }
+
+    /// A Warm-up Set never has an RIR, so marking one clears it; marking it a Working Set again leaves it empty.
+    func setWarmUp(_ isWarmUp: Bool) {
+        self.isWarmUp = isWarmUp
+        if isWarmUp { rir = nil }
+    }
 }

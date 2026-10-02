@@ -1,22 +1,34 @@
 import SwiftUI
 
-/// The card: the Exercise, the current Set with its steppers and the Set loop's actions,
-/// or the no-target state.
+/// The card: the Exercise with its "..." menu and notes, the current Set with its steppers, chips and the Set
+/// loop's actions, or the no-target state.
 struct SetCardView: View {
     let session: LoggingSession
     let entry: ExerciseEntry
     let exercise: Exercise
     @State private var completions = 0
     @FocusState private var isTypingWeight: Bool
+    @State private var isEditingEntryNote = false
+    @State private var isEditingSetNote = false
+    @State private var noteDraft = ""
+    @State private var entryToRemove: ExerciseEntry?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(exercise.name ?? "")
-                .font(.title2.bold())
+            HStack(alignment: .firstTextBaseline) {
+                Text(exercise.name ?? "")
+                    .font(.title2.bold())
+                Spacer()
+                exerciseMenu
+            }
             if let note = exercise.note {
                 Text(note)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+            }
+            if let note = entry.note {
+                Label(note, systemImage: "note.text")
+                    .font(.subheadline)
             }
             if let set = session.currentSet {
                 Text(entry.title(of: set))
@@ -32,6 +44,12 @@ struct SetCardView: View {
                 } else {
                     RepsStepper(label: "Reps", name: "reps", reps: set.reps) { session.changeReps(\.reps, to: $0) }
                 }
+                chips(for: set)
+                if let note = set.note {
+                    Label(note, systemImage: "note.text")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
                 actions(for: set)
             } else {
                 noTargetState
@@ -42,6 +60,68 @@ struct SetCardView: View {
         .background(.background.secondary, in: .rect(cornerRadius: 22))
         .sensoryFeedback(.success, trigger: completions)
         .onChange(of: session.currentSet) { isTypingWeight = false }
+        .alert(entry.note == nil ? "Add note" : "Edit note", isPresented: $isEditingEntryNote) {
+            TextField("Note", text: $noteDraft)
+            Button("Cancel", role: .cancel) {}
+            Button("Save") { session.changeNote(to: noteDraft, of: entry) }
+        }
+        .alert("Set note", isPresented: $isEditingSetNote) {
+            TextField("Note", text: $noteDraft)
+            Button("Cancel", role: .cancel) {}
+            Button("Save") {
+                if let set = session.currentSet { session.changeNote(to: noteDraft, of: set) }
+            }
+        }
+        .removeExerciseConfirm($entryToRemove, session: session)
+        // The stale prompt goes on top, so the card's own alerts close first.
+        .onChange(of: session.stalePromptAt != nil) { _, isUp in
+            guard isUp else { return }
+            isEditingEntryNote = false
+            isEditingSetNote = false
+            entryToRemove = nil
+        }
+    }
+
+    private var exerciseMenu: some View {
+        Menu {
+            Button(entry.note == nil ? "Add note" : "Edit note", systemImage: "note.text") {
+                noteDraft = entry.note ?? ""
+                isEditingEntryNote = true
+            }
+            Button("Remove Exercise", systemImage: "trash", role: .destructive) {
+                entryToRemove = session.requestRemoval(of: entry)
+            }
+        } label: {
+            Label("Exercise options", systemImage: "ellipsis.circle")
+                .labelStyle(.iconOnly)
+                .font(.title3)
+        }
+    }
+
+    /// "Warm-up", "Set note", and the RIR chip on a Completed Working Set.
+    private func chips(for set: WorkoutSet) -> some View {
+        HStack(spacing: 8) {
+            Button { session.toggleWarmUp() } label: {
+                Chip(title: "Warm-up", isOn: set.isWarmUp)
+            }
+            Button {
+                noteDraft = set.note ?? ""
+                isEditingSetNote = true
+            } label: {
+                Chip(title: "Set note", isOn: set.note != nil)
+            }
+            if !set.isTarget && set.isWorkingSet {
+                Menu {
+                    ForEach(0...4, id: \.self) { rir in
+                        Button(DisplayFormat.rir(rir)) { session.changeRIR(to: rir) }
+                    }
+                    Button("None") { session.changeRIR(to: nil) }
+                } label: {
+                    Chip(title: set.rir.map { "RIR \(DisplayFormat.rir($0))" } ?? "RIR", isOn: set.rir != nil)
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -65,6 +145,7 @@ struct SetCardView: View {
                 Button { session.recordRIR(nil) } label: {
                     Text("Skip").frame(maxWidth: .infinity)
                 }
+                .buttonStyle(.borderless)
             }
             .padding(14)
             .background(.tint.opacity(0.15), in: .rect(cornerRadius: 16))
@@ -103,21 +184,41 @@ struct SetCardView: View {
                 .foregroundStyle(.green)
             Text(entry.noTargetHeading)
                 .font(.headline)
-            Group {
-                if let next = session.nextEntry {
-                    Button { session.select(next) } label: {
-                        Text("Next: \(next.exercise?.name ?? "")").foregroundStyle(.black).frame(maxWidth: .infinity)
-                    }
-                } else {
-                    Button { session.isPickerPresented = true } label: {
-                        Text("Add Exercise").foregroundStyle(.black).frame(maxWidth: .infinity)
+            HStack(spacing: 8) {
+                Button("Add Set", action: session.addSet)
+                    .buttonStyle(.bordered)
+                Group {
+                    if let next = session.nextEntry {
+                        Button { session.select(next) } label: {
+                            Text("Next: \(next.exercise?.name ?? "")").foregroundStyle(.black).frame(maxWidth: .infinity)
+                        }
+                    } else {
+                        Button { session.isPickerPresented = true } label: {
+                            Text("Add Exercise").foregroundStyle(.black).frame(maxWidth: .infinity)
+                        }
                     }
                 }
+                .buttonStyle(.borderedProminent)
             }
-            .buttonStyle(.borderedProminent)
+            .lineLimit(1)
             .controlSize(.large)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+/// A chip on the card, filled with the accent while it is on.
+private struct Chip: View {
+    let title: String
+    let isOn: Bool
+
+    var body: some View {
+        Text(title)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(isOn ? AnyShapeStyle(.black) : AnyShapeStyle(.primary))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(isOn ? AnyShapeStyle(.tint) : AnyShapeStyle(.quaternary), in: .capsule)
     }
 }
 

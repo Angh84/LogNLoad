@@ -11,19 +11,22 @@ struct LoggingView: View {
     @State private var isFinishing = false
     @State private var isDiscardingUncompleted = false
     @State private var isConfirmingDiscard = false
+    @State private var isShowingOverview = false
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                ChipPager(session: session)
-                ScrollView {
-                    if let entry = session.currentEntry, let exercise = entry.exercise {
-                        VStack(spacing: 16) {
-                            SetCardView(session: session, entry: entry, exercise: exercise)
-                            SetsLog(session: session, entry: entry, exercise: exercise)
-                        }
-                        .padding()
+                ChipPager(session: session) { isShowingOverview = true }
+                if let entry = session.currentEntry, let exercise = entry.exercise {
+                    List {
+                        SetCardView(session: session, entry: entry, exercise: exercise)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                        SetsLog(session: session, entry: entry, exercise: exercise)
                     }
+                    .listSectionSpacing(16)
+                } else {
+                    emptyWorkout
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -44,6 +47,9 @@ struct LoggingView: View {
             }
             .sheet(isPresented: $session.isPickerPresented) {
                 ExercisePickerView(session: session)
+            }
+            .sheet(isPresented: $isShowingOverview) {
+                OverviewSheet(session: session, onDiscard: discard)
             }
             .sheet(isPresented: $isFinishing) {
                 FinishSheet(workout: session.workout, tappedAt: finishTappedAt, onFinish: finish)
@@ -66,21 +72,32 @@ struct LoggingView: View {
             } message: { now in
                 Text(staleMessage(now: now))
             }
-            .alert("Discard Workout?", isPresented: $isConfirmingDiscard) {
-                Button("Cancel", role: .cancel) {}
-                Button("Discard", role: .destructive, action: discard)
-            } message: {
-                Text(discardMessage)
-            }
+            .discardWorkoutConfirm(isPresented: $isConfirmingDiscard, workout: session.workout, onDiscard: discard)
             // The stale prompt goes on top, so whatever else is up closes first.
             .onChange(of: session.stalePromptAt != nil, initial: true) { _, isUp in
                 guard isUp else { return }
                 session.isPickerPresented = false
+                isShowingOverview = false
                 isFinishing = false
                 isDiscardingUncompleted = false
                 isConfirmingDiscard = false
             }
         }
+    }
+
+    private var emptyWorkout: some View {
+        VStack(spacing: 16) {
+            Text("Add your first Exercise to start logging.")
+                .font(.headline)
+                .multilineTextAlignment(.center)
+            Button { session.isPickerPresented = true } label: {
+                Text("Add Exercise").foregroundStyle(.black)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+        }
+        .padding()
+        .frame(maxHeight: .infinity)
     }
 
     /// With zero Completed Sets there is nothing to finish, so it offers to discard instead.
@@ -119,11 +136,35 @@ struct LoggingView: View {
         return message + " Finishing removes \(DisplayFormat.count(targets, "target Set")) not completed."
     }
 
-    /// N counts the Completed Sets, Warm-up Sets included.
-    private var discardMessage: String {
-        let completed = session.workout.completedSets.count
-        guard completed > 0 else { return "This deletes the Workout. Nothing is saved to history or Health." }
-        return "This deletes the Workout and its \(DisplayFormat.count(completed, "Set")). Nothing is saved to history or Health."
+}
+
+extension View {
+    /// The "Discard Workout?" confirm, from the overview sheet and the stale prompt. N counts the Completed Sets,
+    /// Warm-up Sets included.
+    func discardWorkoutConfirm(isPresented: Binding<Bool>, workout: Workout, onDiscard: @escaping () -> Void) -> some View {
+        alert("Discard Workout?", isPresented: isPresented) {
+            Button("Cancel", role: .cancel) {}
+            Button("Discard", role: .destructive, action: onDiscard)
+        } message: {
+            let completed = workout.completedSets.count
+            Text(completed == 0
+                ? "This deletes the Workout. Nothing is saved to history or Health."
+                : "This deletes the Workout and its \(DisplayFormat.count(completed, "Set")). Nothing is saved to history or Health.")
+        }
+    }
+
+    /// "Remove <name>?" for the Entry `LoggingSession.requestRemoval(of:)` returns.
+    func removeExerciseConfirm(_ entry: Binding<ExerciseEntry?>, session: LoggingSession) -> some View {
+        alert(
+            "Remove \(entry.wrappedValue?.exercise?.name ?? "")?",
+            isPresented: Binding { entry.wrappedValue != nil } set: { if !$0 { entry.wrappedValue = nil } },
+            presenting: entry.wrappedValue
+        ) { entry in
+            Button("Cancel", role: .cancel) {}
+            Button("Remove", role: .destructive) { session.remove(entry) }
+        } message: { entry in
+            Text("Its \(DisplayFormat.count(entry.completedSets.count, "completed Set")) will be deleted.")
+        }
     }
 }
 
@@ -136,26 +177,21 @@ struct ElapsedTimer: View {
     }
 }
 
-/// One chip per Entry with a bar per Set, then a "+" chip that opens the picker.
+/// The list button that opens the overview sheet, one chip per Entry with a bar per Set, then a "+" chip that
+/// opens the picker.
 private struct ChipPager: View {
     let session: LoggingSession
+    let onOverview: () -> Void
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
+                    iconChip("Overview", systemImage: "list.bullet", action: onOverview)
                     ForEach(session.workout.sortedEntries) { entry in
                         chip(entry)
                     }
-                    Button { session.isPickerPresented = true } label: {
-                        Label("Add Exercise", systemImage: "plus")
-                            .labelStyle(.iconOnly)
-                            .font(.headline)
-                            .foregroundStyle(.tint)
-                            .frame(minWidth: 48, maxHeight: .infinity)
-                            .background(.background.secondary, in: .rect(cornerRadius: 12))
-                    }
-                    .buttonStyle(.plain)
+                    iconChip("Add Exercise", systemImage: "plus") { session.isPickerPresented = true }
                 }
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal)
@@ -167,6 +203,18 @@ private struct ChipPager: View {
                 withAnimation { proxy.scrollTo(entry.id) }
             }
         }
+    }
+
+    private func iconChip(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .labelStyle(.iconOnly)
+                .font(.headline)
+                .foregroundStyle(.tint)
+                .frame(minWidth: 48, minHeight: 44, maxHeight: .infinity)
+                .background(.background.secondary, in: .rect(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
     }
 
     private func chip(_ entry: ExerciseEntry) -> some View {
@@ -198,28 +246,37 @@ private struct ChipPager: View {
     }
 }
 
-/// Every Set of the current Entry; tapping a row makes that Set current.
+/// Every Set of the current Entry: tap a row to make it current, swipe it to delete, long-press and drag to reorder.
 private struct SetsLog: View {
     let session: LoggingSession
     let entry: ExerciseEntry
     let exercise: Exercise
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Sets")
-                .font(.headline)
-                .padding(.vertical, 8)
+        Section {
             ForEach(entry.sortedSets) { set in
-                Divider()
                 Button { session.select(set) } label: {
                     row(set)
                 }
                 .buttonStyle(.plain)
+                .listRowBackground(Rectangle().fill(set == session.currentSet ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(.background.secondary)))
             }
+            .onDelete { offsets in
+                let sets = entry.sortedSets
+                offsets.map { sets[$0] }.forEach(session.delete)
+            }
+            .onMove { session.moveSets(fromOffsets: $0, toOffset: $1) }
+        } header: {
+            HStack {
+                Text("Sets")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Spacer()
+                Button("Add Set", systemImage: "plus", action: session.addSet)
+                    .font(.subheadline.weight(.semibold))
+            }
+            .textCase(nil)
         }
-        .padding(.horizontal, 12)
-        .padding(.bottom, 8)
-        .background(.background.secondary, in: .rect(cornerRadius: 16))
     }
 
     private func row(_ set: WorkoutSet) -> some View {
@@ -239,9 +296,6 @@ private struct SetsLog: View {
                 .foregroundStyle(.green)
                 .opacity(set.isTarget ? 0 : 1)
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 6)
-        .background(set == session.currentSet ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(.clear), in: .rect(cornerRadius: 8))
         .contentShape(.rect)
     }
 }

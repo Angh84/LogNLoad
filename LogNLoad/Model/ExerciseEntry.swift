@@ -32,9 +32,28 @@ extension ExerciseEntry {
         sortedSets.first(where: \.isTarget)
     }
 
+    /// Appends a target Working Set with the values of the last Working Set, else of the last Set,
+    /// else 0 kg x 0.
+    func addSet() -> WorkoutSet {
+        let sets = sortedSets
+        let source = sets.last(where: \.isWorkingSet) ?? sets.last
+        return WorkoutSet(
+            entry: self,
+            order: (sets.last?.order ?? -1) + 1,
+            weight: source?.weight ?? 0,
+            reps: source?.reps ?? 0,
+            repsLeft: source?.repsLeft ?? 0,
+            repsRight: source?.repsRight ?? 0
+        )
+    }
+
+    var completedSets: [WorkoutSet] {
+        sortedSets.filter { !$0.isTarget }
+    }
+
     /// Whether Finish keeps this Entry.
     var hasCompletedSet: Bool {
-        sortedSets.contains { !$0.isTarget }
+        !completedSets.isEmpty
     }
 
     /// "W" for a Warm-up Set; Working Sets are numbered from 1 in order.

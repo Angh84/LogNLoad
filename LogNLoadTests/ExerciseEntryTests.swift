@@ -58,4 +58,37 @@ struct ExerciseEntryTests {
         _ = WorkoutSet(entry: entry, order: 2)
         #expect(entry.noTargetHeading == "All 2 Sets done")
     }
+
+    // MARK: Add Set
+
+    @Test func addSetCopiesTheLastWorkingSetAsATarget() throws {
+        _ = WorkoutSet(entry: entry, order: 0, weight: 60, reps: 10, repsLeft: 9, repsRight: 8, rir: 2, note: "Paused", completedAt: .now)
+        _ = WorkoutSet(entry: entry, order: 1, weight: 20, reps: 5, isWarmUp: true, completedAt: .now)
+
+        let added = entry.addSet()
+
+        #expect(entry.sortedSets.last == added)
+        #expect([added.weight, Double(added.reps), Double(added.repsLeft), Double(added.repsRight)] == [60, 10, 9, 8])
+        #expect(added.isTarget)
+        #expect(!added.isWarmUp)
+        #expect(added.rir == nil && added.note == nil)
+    }
+
+    @Test func addSetCopiesTheLastSetAsAWorkingSetWhenThereIsNoWorkingSet() {
+        _ = WorkoutSet(entry: entry, order: 0, weight: 20, reps: 10, isWarmUp: true)
+        _ = WorkoutSet(entry: entry, order: 1, weight: 40, reps: 5, isWarmUp: true)
+
+        let added = entry.addSet()
+
+        #expect([added.weight, Double(added.reps)] == [40, 5])
+        #expect(!added.isWarmUp)
+    }
+
+    @Test func addSetOnAnEntryWithoutSetsIsZeroByZero() {
+        let added = entry.addSet()
+
+        #expect(entry.sortedSets == [added])
+        #expect([added.weight, Double(added.reps)] == [0, 0])
+        #expect(added.isTarget)
+    }
 }
