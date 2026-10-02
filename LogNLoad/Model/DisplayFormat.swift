@@ -110,6 +110,11 @@ enum DisplayFormat {
             + "\(count(workout.sortedEntries.count, "Exercise")), \(count(workout.workingSetCount, "Set"))"
     }
 
+    /// A Workout's day: "Wednesday 30 Sep", the title of an unnamed Workout and the edit banner's date.
+    static func workoutDate(_ date: Date, locale: Locale = .current, calendar: Calendar = .current) -> String {
+        date.formatted(Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone).weekday(.wide).day().month(.abbreviated))
+    }
+
     /// The month grid's heading: "September 2026".
     static func monthHeading(_ month: Date, locale: Locale = .current, calendar: Calendar = .current) -> String {
         month.formatted(Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone).month(.wide).year())

@@ -402,4 +402,43 @@ struct WorkoutTests {
         #expect(try fresh.fetchCount(FetchDescriptor<WorkoutSet>()) == 0)
         #expect(try fresh.fetchCount(FetchDescriptor<Exercise>()) == 1)
     }
+
+    // MARK: Edit session
+
+    @Test func aSetWithoutACompletionTimeIsATargetOnlyInTheActiveWorkout() {
+        let active = Workout(startedAt: day(30))
+        context.insert(active)
+        let target = entry("Squat", in: active, false).sortedSets[0]
+        let finished = Workout(startedAt: day(28), endedAt: day(28, 18))
+        context.insert(finished)
+        let timeUnknown = entry("Bench", in: finished, false).sortedSets[0]
+
+        #expect(target.isTarget)
+        #expect(!timeUnknown.isTarget)
+    }
+
+    @Test func anExerciseAddedWhileEditingGetsOneEmptySetAndNoPrefill() throws {
+        let squat = entry("Squat", in: Workout(startedAt: day(26), endedAt: day(26, 18)), true)
+        context.insert(squat.workout!)
+        let edited = Workout(startedAt: day(28), endedAt: day(28, 18))
+        context.insert(edited)
+
+        let added = edited.add(try #require(squat.exercise))
+
+        #expect(added.sortedSets.map { [$0.weight, Double($0.reps)] } == [[0, 0]])
+        #expect(added.sortedSets[0].completedAt == nil)
+        #expect(!added.sortedSets[0].isTarget)
+    }
+
+    @Test func workoutsOverlapWhenEachStartsBeforeTheOtherEnds() {
+        let workout = Workout(startedAt: day(28, 17), endedAt: day(28, 18))
+        let later = Workout(startedAt: day(28, 18), endedAt: day(28, 19))
+        let inside = Workout(startedAt: day(28, 16), endedAt: day(28, 17).addingTimeInterval(60))
+        let active = Workout(startedAt: day(28, 17).addingTimeInterval(1800))
+
+        #expect(!workout.overlaps(later, now: day(30)))
+        #expect(workout.overlaps(inside, now: day(30)))
+        #expect(workout.overlaps(active, now: day(30)))
+        #expect(!workout.overlaps(Workout(startedAt: day(29)), now: day(29, 1)))
+    }
 }

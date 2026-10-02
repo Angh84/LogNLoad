@@ -3,11 +3,13 @@ import Observation
 import SwiftData
 import SwiftUI
 
-/// The logging screen's state for the Active Workout. The current Entry and Set live only here,
-/// never in the store, so a relaunch reopens on the first target Set.
+/// The logging screen's state, for the Active Workout or an edit session on a finished one. The current Entry and
+/// Set live only here, never in the store, so a relaunch reopens on the first target Set.
 @MainActor @Observable
 final class LoggingSession {
     let workout: Workout
+    /// An edit session on a finished Workout: its changes wait for Done.
+    let isEditing: Bool
     private(set) var currentEntry: ExerciseEntry?
     /// Empty when the current Entry has no target Set left.
     private(set) var currentSet: WorkoutSet?
@@ -22,15 +24,34 @@ final class LoggingSession {
     /// When the stale prompt came up, while it is up.
     var stalePromptAt: Date?
 
-    init(workout: Workout) {
+    init(workout: Workout, isEditing: Bool = false) {
         self.workout = workout
+        self.isEditing = isEditing
         let entries = workout.sortedEntries
-        currentEntry = entries.first { $0.firstTargetSet != nil } ?? entries.last
-        currentSet = currentEntry?.firstTargetSet
+        if isEditing {
+            currentEntry = entries.first
+            currentSet = currentEntry?.sortedSets.first
+        } else {
+            currentEntry = entries.first { $0.firstTargetSet != nil } ?? entries.last
+            currentSet = currentEntry?.firstTargetSet
+        }
+    }
+
+    /// An edit session on a finished Workout, in its own `ModelContext` so that Cancel's rollback can't touch the
+    /// Active Workout.
+    static func editing(_ workout: Workout) -> LoggingSession? {
+        guard let container = workout.modelContext?.container else { return nil }
+        let context = ModelContext(container)
+        context.autosaveEnabled = false
+        let id = workout.id
+        guard let copy = try? context.fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.id == id })).first else { return nil }
+        return LoggingSession(workout: copy, isEditing: true)
     }
 
     /// Appends the Exercise's Entry, or goes to it with a toast when it is already in the Workout.
     func add(_ exercise: Exercise) {
+        // The picker's Exercises live in the main context; an edit session works in its own.
+        let exercise = workout.modelContext?.model(for: exercise.persistentModelID) as? Exercise ?? exercise
         if workout.contains(exercise) {
             toast = "\(exercise.name ?? "") is already in this Workout"
         }
@@ -45,10 +66,10 @@ final class LoggingSession {
         add(exercise)
     }
 
-    /// Makes the Entry current, on its first target Set.
+    /// Makes the Entry current, on its first target Set, or on its first Set while editing.
     func select(_ entry: ExerciseEntry) {
         currentEntry = entry
-        currentSet = entry.firstTargetSet
+        currentSet = isEditing ? entry.sortedSets.first : entry.firstTargetSet
         isAskingRIR = false
     }
 
@@ -141,12 +162,19 @@ final class LoggingSession {
         select(set)
     }
 
-    /// Deletes a Set of the current Entry. When it was current, the Entry's first target Set becomes current.
+    /// Deletes a Set of the current Entry. When it was current, the Entry's first target Set becomes current; while
+    /// editing, the following Set, else the previous one, else "No Sets".
     func delete(_ set: WorkoutSet) {
         let wasCurrent = set == currentSet
+        let neighbour = Self.neighbour(of: set, in: currentEntry?.sortedSets ?? [])
         workout.modelContext?.delete(set)
         save()
-        if wasCurrent { moveToFirstTargetSet() }
+        guard wasCurrent else { return }
+        if isEditing {
+            currentSet = neighbour
+        } else {
+            moveToFirstTargetSet()
+        }
     }
 
     /// "Remove Exercise" removes an Entry without Completed Sets at once. One with Completed Sets is returned
@@ -160,9 +188,8 @@ final class LoggingSession {
     /// Deletes the Entry and its Sets. When it was current, the next Entry becomes current,
     /// else the previous one, else the empty Workout.
     func remove(_ entry: ExerciseEntry) {
-        let entries = workout.sortedEntries
-        guard let index = entries.firstIndex(of: entry) else { return }
-        let neighbour = index + 1 < entries.count ? entries[index + 1] : index > 0 ? entries[index - 1] : nil
+        guard workout.sortedEntries.contains(entry) else { return }
+        let neighbour = Self.neighbour(of: entry, in: workout.sortedEntries)
         let wasCurrent = entry == currentEntry
         workout.modelContext?.delete(entry)
         save()
@@ -193,9 +220,74 @@ final class LoggingSession {
         save()
     }
 
-    /// The Entry's first target Set, or its no-target state when none is left.
+    /// The Entry's first target Set, or its no-target state when none is left. While editing, the following Set.
     func nextSet() {
-        moveToFirstTargetSet()
+        if isEditing {
+            currentSet = followingSet
+        } else {
+            moveToFirstTargetSet()
+        }
+    }
+
+    /// The Set after the current one, for edit mode's "Next Set". Empty on the Entry's last Set.
+    var followingSet: WorkoutSet? {
+        let sets = currentEntry?.sortedSets ?? []
+        guard let currentSet, let index = sets.firstIndex(of: currentSet), index + 1 < sets.count else { return nil }
+        return sets[index + 1]
+    }
+
+    /// What stops Done, in the spec's order.
+    enum DoneProblem: Equatable {
+        case endNotAfterStart, endInFuture, overlaps(Workout), noSets
+
+        var overlapping: Workout? {
+            if case .overlaps(let workout) = self { workout } else { nil }
+        }
+    }
+
+    /// The first rule the edited Workout breaks: its end after its start and not in the future, no overlap with
+    /// another Workout (the Active one ends now), and at least one Set left.
+    func doneProblem(now: Date) -> DoneProblem? {
+        guard let start = workout.startedAt, let end = workout.endedAt else { return nil }
+        if end <= start { return .endNotAfterStart }
+        if end > now { return .endInFuture }
+        var descriptor = FetchDescriptor<Workout>()
+        descriptor.sortBy = [SortDescriptor(\.startedAt)]
+        let others = ((try? workout.modelContext?.fetch(descriptor)) ?? []).filter { $0.id != workout.id }
+        if let other = others.first(where: { workout.overlaps($0, now: now) }) { return .overlaps(other) }
+        if workout.sortedEntries.allSatisfy({ $0.sortedSets.isEmpty }) { return .noSets }
+        return nil
+    }
+
+    /// Done: drops every Entry left without Sets, then saves the whole edit at once.
+    func saveEdit() {
+        guard let context = workout.modelContext else { return }
+        for entry in workout.sortedEntries where entry.sortedSets.isEmpty {
+            context.delete(entry)
+        }
+        do {
+            try context.save()
+        } catch {
+            fatalError("Could not save the edited Workout: \(error)")
+        }
+        // The main context keeps its own copies, and refetching is what brings their stored values up to date.
+        let main = context.container.mainContext
+        let id = workout.id
+        _ = try? main.fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.id == id }))
+        _ = try? main.fetch(FetchDescriptor<ExerciseEntry>(predicate: #Predicate { $0.workout?.id == id }))
+        _ = try? main.fetch(FetchDescriptor<WorkoutSet>(predicate: #Predicate { $0.entry?.workout?.id == id }))
+        // Exercises gained or lost an Entry, which their Last Performance and Prefill read.
+        _ = try? main.fetch(FetchDescriptor<Exercise>())
+    }
+
+    /// Cancel: discards every change of the edit session.
+    func cancelEdit() {
+        workout.modelContext?.rollback()
+    }
+
+    /// Whether Cancel has changes to discard.
+    var hasEdits: Bool {
+        workout.modelContext?.hasChanges ?? false
     }
 
     private func moveToFirstTargetSet() {
@@ -245,8 +337,19 @@ final class LoggingSession {
         return currentEntry.title(of: currentSet)
     }
 
-    /// Every change is saved at once, so the Workout survives an app kill.
+    /// What takes over when `item` goes: the item after it, else the one before, else none.
+    private static func neighbour<Item: Equatable>(of item: Item, in items: [Item]) -> Item? {
+        guard let index = items.firstIndex(of: item) else { return nil }
+        return index + 1 < items.count ? items[index + 1] : index > 0 ? items[index - 1] : nil
+    }
+
+    /// Every change is saved at once, so the Workout survives an app kill. While editing, changes wait for Done, and
+    /// only the context's relationships are brought up to date.
     private func save() {
+        guard !isEditing else {
+            workout.modelContext?.processPendingChanges()
+            return
+        }
         do {
             try workout.modelContext?.save()
         } catch {
@@ -254,3 +357,5 @@ final class LoggingSession {
         }
     }
 }
+
+extension LoggingSession: Identifiable {}

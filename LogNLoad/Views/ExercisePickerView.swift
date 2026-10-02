@@ -12,15 +12,21 @@ struct ExercisePickerView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
 
+    /// Where names are checked: an edit session's new Exercises live in its own context until Done.
+    private var names: ModelContext {
+        session.workout.modelContext ?? context
+    }
+
     var body: some View {
         NavigationStack {
             List {
-                if let name = trimmed(search), Exercise.named(name, in: context) == nil {
+                if let name = trimmed(search), Exercise.named(name, in: names) == nil {
                     NavigationLink {
                         ExerciseFormView(name: name) { exercise in
                             session.create(exercise)
                             dismiss()
                         }
+                        .environment(\.modelContext, names)
                     } label: {
                         Label("Create \"\(name)\"", systemImage: "plus")
                             .foregroundStyle(.tint)

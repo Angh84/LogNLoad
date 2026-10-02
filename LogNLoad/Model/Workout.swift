@@ -55,7 +55,13 @@ extension Workout {
     }
 
     func contains(_ exercise: Exercise) -> Bool {
-        exercises.contains(exercise)
+        exercises.contains { $0.id == exercise.id }
+    }
+
+    /// Two Workouts overlap when each starts before the other ends. The Active Workout ends `now`.
+    func overlaps(_ other: Workout, now: Date) -> Bool {
+        guard let start = startedAt, let otherStart = other.startedAt else { return false }
+        return start < (other.endedAt ?? now) && otherStart < (endedAt ?? now)
     }
 
     /// Its name, else its first two Exercise names and "+N" for the rest.
@@ -79,12 +85,13 @@ extension Workout {
         !isActive && healthConfirmedVersion != healthWriteCounter
     }
 
-    /// Appends an Entry for `exercise`, prefilled with target Sets copied from its Last Performance,
-    /// else one 0 kg x 0 target Set. An Exercise already in the Workout returns its Entry instead.
+    /// Appends an Entry for `exercise`. The Active Workout prefills it with target Sets copied from its Last
+    /// Performance; otherwise, and while editing a finished Workout, it gets one 0 kg x 0 Set. An Exercise already in
+    /// the Workout returns its Entry instead.
     func add(_ exercise: Exercise) -> ExerciseEntry {
-        if let existing = sortedEntries.first(where: { $0.exercise == exercise }) { return existing }
+        if let existing = sortedEntries.first(where: { $0.exercise?.id == exercise.id }) { return existing }
         let entry = ExerciseEntry(workout: self, exercise: exercise, order: (sortedEntries.last?.order ?? -1) + 1)
-        let prefill = exercise.lastPerformance ?? []
+        let prefill = isActive ? exercise.lastPerformance ?? [] : []
         for (order, set) in prefill.enumerated() {
             _ = WorkoutSet(entry: entry, order: order, weight: set.weight, reps: set.reps, repsLeft: set.repsLeft, repsRight: set.repsRight, isWarmUp: set.isWarmUp)
         }
