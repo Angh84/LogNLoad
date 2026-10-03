@@ -96,10 +96,11 @@ extension Workout {
         !isActive && healthConfirmedVersion != healthWriteCounter
     }
 
-    /// The finished Workouts Health hasn't confirmed at their current `healthWriteCounter`.
+    /// The finished Workouts Health hasn't confirmed at their current `healthWriteCounter`, oldest first.
     static func healthPending(in context: ModelContext) -> [Workout] {
-        let finished = (try? context.fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.endedAt != nil }))) ?? []
-        return finished.filter(\.isHealthPending)
+        var descriptor = FetchDescriptor<Workout>(predicate: #Predicate { $0.endedAt != nil })
+        descriptor.sortBy = [SortDescriptor(\.startedAt)]
+        return ((try? context.fetch(descriptor)) ?? []).filter(\.isHealthPending)
     }
 
     /// What its next Health write saves: the stored times and the current sync version.

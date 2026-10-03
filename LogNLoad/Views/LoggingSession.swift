@@ -301,14 +301,18 @@ final class LoggingSession {
         for entry in workout.sortedEntries where entry.sortedSets.isEmpty {
             context.delete(entry)
         }
+        let main = context.container.mainContext
+        let id = workout.id
+        // A Health pass in the main context can confirm the Workout while it is edited, after this copy was made.
+        if let current = try? main.fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.id == id })).first {
+            workout.healthConfirmedVersion = current.healthConfirmedVersion
+        }
         do {
             try context.save()
         } catch {
             fatalError("Could not save the edited Workout: \(error)")
         }
         // The main context keeps its own copies, and refetching is what brings their stored values up to date.
-        let main = context.container.mainContext
-        let id = workout.id
         _ = try? main.fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.id == id }))
         _ = try? main.fetch(FetchDescriptor<ExerciseEntry>(predicate: #Predicate { $0.workout?.id == id }))
         _ = try? main.fetch(FetchDescriptor<WorkoutSet>(predicate: #Predicate { $0.entry?.workout?.id == id }))

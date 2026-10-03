@@ -1,8 +1,9 @@
 import SwiftData
 import SwiftUI
 
-/// Onboarding until its Continue is tapped, then the tabs on every launch. Every launch and every return from
-/// the background retries the Health-pending Workouts.
+/// Onboarding until its Continue is tapped, then the tabs on every launch. Every launch past onboarding and every
+/// return from the background retry the Health-pending Workouts, the launch first asking for Health permission if
+/// it was never asked.
 struct RootView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @Environment(HealthSync.self) private var health
@@ -17,7 +18,9 @@ struct RootView: View {
                 OnboardingView(onContinue: continueFromOnboarding)
             }
         }
-        .task { await health.sync(in: context) }
+        .task {
+            if hasCompletedOnboarding { await health.syncOnLaunch(in: context) }
+        }
         .onChange(of: scenePhase) { oldPhase, _ in
             if oldPhase == .background { Task { await health.sync(in: context) } }
         }

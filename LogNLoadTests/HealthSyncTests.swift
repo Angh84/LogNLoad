@@ -4,17 +4,22 @@ import SwiftData
 import Testing
 @testable import LogNLoad
 
-/// Records what is saved, and fails every save while `isFailing`.
+/// Records permission requests and what is saved, and fails every save while `isFailing`.
 @MainActor
 final class FakeHealthStore: HealthStore {
     var saved: [HealthWorkout] = []
     var isFailing = false
+    /// "request" and "save", in the order they happen.
+    var calls: [String] = []
 
-    func requestAuthorization() async {}
+    func requestAuthorization() async {
+        calls.append("request")
+    }
 
     func save(_ workout: HealthWorkout) async throws {
         if isFailing { throw CocoaError(.userCancelled) }
         saved.append(workout)
+        calls.append("save")
     }
 }
 
@@ -110,6 +115,32 @@ struct HealthSyncTests {
 
         #expect(blocking.saved.count == 2)
         #expect(!late.isHealthPending)
+    }
+
+    @Test func aWorkoutDeletedDuringAPassIsNotWritten() async throws {
+        workout(27)
+        let deleted = workout(28)
+        try context.save()
+        let blocking = BlockingHealthStore()
+        let blockingSync = HealthSync(store: blocking)
+
+        let mainContext = context
+        let pass = Task { await blockingSync.sync(in: mainContext) }
+        await blocking.started()
+        try deleted.delete()
+        blocking.release()
+        await pass.value
+
+        #expect(blocking.saved.count == 1)
+    }
+
+    @Test func aLaunchPastOnboardingRequestsPermissionBeforeItsPass() async throws {
+        workout(28)
+        try context.save()
+
+        await sync.syncOnLaunch(in: context)
+
+        #expect(store.calls == ["request", "save"])
     }
 }
 
