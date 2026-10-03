@@ -842,4 +842,17 @@ struct LoggingSessionTests {
         #expect(session.currentEntry == backSquat)
         #expect(session.currentSet == backSquat.sortedSets[1])
     }
+
+    @Test func doneKeepsAHealthConfirmMadeWhileEditing() throws {
+        let finished = try finishedWorkout([60])
+        let session = try #require(LoggingSession.editing(finished))
+
+        finished.healthConfirmedVersion = finished.healthWriteCounter
+        try context.save()
+        session.changeWorkoutName(to: "Legs")
+        session.saveEdit()
+
+        #expect(try stored(finished)?.healthConfirmedVersion == 1)
+        #expect(!finished.isHealthPending)
+    }
 }

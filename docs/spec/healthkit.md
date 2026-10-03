@@ -11,7 +11,8 @@ What a finished Workout writes to Apple Health, when permission is asked, how ed
 ## Permission
 
 - Share permission for `HKObjectType.workoutType()` only.
-- Requested once, when the user taps Continue on the onboarding screen ([navigation.md](navigation.md#onboarding)). The system sheet's Don't Allow is the opt-out.
+- Requested when the user taps Continue on the onboarding screen ([navigation.md](navigation.md#onboarding)). The system sheet's Don't Allow is the opt-out.
+- An install that finished onboarding before HealthKit was built was never asked: it is asked on its next launch, before the retry pass. HealthKit shows the sheet only while the request was never made, so every install sees it once.
 - No in-app toggle. Health's per-app switch is the control.
 
 ## Write on Finish
@@ -56,4 +57,4 @@ What a finished Workout writes to Apple Health, when permission is asked, how ed
 - Deleting a Workout whose first write never succeeded: the delete finds nothing in Health, which counts as done.
 - A time edit saved while permission is denied: the Workout stays pending and is written after a later grant.
 
-Sources: [What can a HealthKit strength workout carry, and what needs a paid account?](https://github.com/Angh84/LogNLoad/issues/4), [What does a finished Workout write to Health, and how do edits sync?](https://github.com/Angh84/LogNLoad/issues/10), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13), [What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21)
+Sources: [What can a HealthKit strength workout carry, and what needs a paid account?](https://github.com/Angh84/LogNLoad/issues/4), [What does a finished Workout write to Health, and how do edits sync?](https://github.com/Angh84/LogNLoad/issues/10), [What can be edited after a Workout, and what happens to Exercises with history?](https://github.com/Angh84/LogNLoad/issues/11), [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13), [What do the open display formats and UI copy say?](https://github.com/Angh84/LogNLoad/issues/21), [When does an install already past onboarding get asked for Health permission?](https://github.com/Angh84/LogNLoad/issues/41)

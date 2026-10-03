@@ -96,6 +96,19 @@ extension Workout {
         !isActive && healthConfirmedVersion != healthWriteCounter
     }
 
+    /// The finished Workouts Health hasn't confirmed at their current `healthWriteCounter`, oldest first.
+    static func healthPending(in context: ModelContext) -> [Workout] {
+        var descriptor = FetchDescriptor<Workout>(predicate: #Predicate { $0.endedAt != nil })
+        descriptor.sortBy = [SortDescriptor(\.startedAt)]
+        return ((try? context.fetch(descriptor)) ?? []).filter(\.isHealthPending)
+    }
+
+    /// What its next Health write saves: the stored times and the current sync version.
+    var healthWorkout: HealthWorkout? {
+        guard let startedAt, let endedAt else { return nil }
+        return HealthWorkout(id: id, start: startedAt, end: endedAt, version: healthWriteCounter)
+    }
+
     /// Appends an Entry for `exercise`. The Active Workout prefills it with target Sets copied from its Last
     /// Performance; otherwise, and while editing a finished Workout, it gets one 0 kg x 0 Set. An Exercise already in
     /// the Workout returns its Entry instead.

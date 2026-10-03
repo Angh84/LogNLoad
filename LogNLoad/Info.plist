@@ -4,6 +4,8 @@
 <dict>
 	<key>CFBundleDisplayName</key>
 	<string>LogNLoad</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>LogNLoad saves your finished Workouts to Health as strength training, with their start and end times. It doesn't read anything from Health.</string>
 	<key>UIUserInterfaceStyle</key>
 	<string>Dark</string>
 	<key>UISupportedInterfaceOrientations</key>

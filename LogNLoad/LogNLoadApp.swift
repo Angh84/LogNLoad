@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct LogNLoadApp: App {
     let container: ModelContainer
+    @State private var health = HealthSync(store: AppleHealthStore())
 
     init() {
         do {
@@ -21,6 +22,7 @@ struct LogNLoadApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environment(health)
         }
         .modelContainer(container)
     }
