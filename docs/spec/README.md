@@ -98,6 +98,7 @@ Turning this build order into build issues is the next effort after the spec map
 **Appearance**
 - Dark only, forced app-wide (`UIUserInterfaceStyle` = `Dark` in Info.plist). No light mode and no override.
 - System semantic colors, plus one app accent color for primary actions (Complete, Start Workout, Finish) and selection (chips, week-strip dots). The accent is `#6F9CFF` (the `AccentColor` asset), and text on it is black. It must meet WCAG AA contrast (4.5:1) for text on the accent and for the accent on the dark backgrounds.
+- The one other fixed palette is the Muscles tab's five Training Volume bands ([#60](https://github.com/Angh84/LogNLoad/issues/60)).
 - Launch screen: a plain black background, no logo (`UILaunchScreen` in Info.plist).
 - Discard, Remove and Delete buttons use the destructive role (red) in every prompt and confirm.
 

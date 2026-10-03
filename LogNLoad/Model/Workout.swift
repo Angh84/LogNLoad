@@ -36,6 +36,14 @@ extension Workout {
         return try context.fetch(descriptor).first
     }
 
+    /// The Workouts that started in `window`, the Active Workout included.
+    static func predicate(startedIn window: DateInterval) -> Predicate<Workout> {
+        let (start, end) = (window.start, window.end)
+        return #Predicate { workout in
+            workout.startedAt.flatMap { $0 >= start && $0 < end } ?? false
+        }
+    }
+
     /// Starts the Active Workout at the tap time. There is at most one at a time.
     static func start(at date: Date, in context: ModelContext) throws -> Workout {
         guard try active(in: context) == nil else { throw WorkoutError.activeWorkoutExists }

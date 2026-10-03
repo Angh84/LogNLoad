@@ -4,12 +4,12 @@ The app's structure: tabs, the pinned Workout bar, what launch shows, the loggin
 
 ## Tabs
 
-- Two tabs: History, then Exercises. No Workout tab, no Settings screen.
-- History's root is the History list; Exercises' root is the Library list.
+- Three tabs: Muscles, History, then Exercises. No Workout tab, no Settings screen.
+- Muscles' root is the Muscles screen ([#60](https://github.com/Angh84/LogNLoad/issues/60)); History's root is the History list; Exercises' root is the Library list.
 
 ## Pinned Workout bar
 
-- A bar pinned above the tab bar on both tabs (`tabViewBottomAccessory`).
+- A bar pinned above the tab bar on every tab (`tabViewBottomAccessory`).
 - With no Active Workout it is "Start Workout".
 - During an Active Workout it shows the current Exercise, a status line and the [elapsed timer](README.md#display-formats). Tapping it expands the logging cover.
 - The status line is the card's own heading ([logging-screen.md](logging-screen.md#set-loop)): "Set n of m" or "Warm-up" for the current Set, or "All N Sets done", "All Sets done" or "No Sets" when the current Entry has no target Set left.
@@ -20,12 +20,12 @@ The app's structure: tabs, the pinned Workout bar, what launch shows, the loggin
 - First launch: the onboarding screen.
 - Any other launch with an Active Workout: the logging cover, expanded, with the stale prompt on top when it is due ([workout-lifecycle.md](workout-lifecycle.md#stale-workout)).
 - Returning from the background with the stale prompt due: the logging cover expands, if minimized, with the prompt on top.
-- Any other launch: the History tab.
+- Any other launch: the Muscles tab.
 
 ## Logging cover
 
 - The Focus logging screen is a full-screen cover.
-- It minimizes into the pinned bar by swiping down or tapping its chevron. While minimized, History and Exercises are fully usable. Expanding it again keeps the current Entry and Set ([logging-screen.md](logging-screen.md#current-entry-and-set)).
+- It minimizes into the pinned bar by swiping down or tapping its chevron. While minimized, every tab is fully usable. Expanding it again keeps the current Entry and Set ([logging-screen.md](logging-screen.md#current-entry-and-set)).
 - "Start Workout" starts the Workout at once ([workout-lifecycle.md](workout-lifecycle.md#start)) and expands the cover with the Exercise picker sheet already up.
 - After Finish, the cover closes, the History tab is selected, and the list shows the new Workout ([history-screens.md](history-screens.md#finish-landing)). The bar returns to "Start Workout".
 - After Discard, the cover closes onto whichever tab was underneath.
@@ -39,7 +39,7 @@ The app's structure: tabs, the pinned Workout bar, what launch shows, the loggin
 ## Onboarding
 
 - First launch only: one screen with the app name, "Finished Workouts are saved to Apple Health as strength training", and Continue.
-- Continue raises the system Health permission sheet ([healthkit.md](healthkit.md#permission)), then shows the History tab.
+- Continue raises the system Health permission sheet ([healthkit.md](healthkit.md#permission)), then shows the Muscles tab.
 
 ## Exercise form
 
@@ -53,4 +53,4 @@ The app's structure: tabs, the pinned Workout bar, what launch shows, the loggin
 - A Workout detail's "Exercise history >" pushes that Exercise's page in the current tab.
 - Nothing switches tabs, apart from Finish selecting History.
 
-Sources: [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13), [How does a Workout start, finish, and survive interruption?](https://github.com/Angh84/LogNLoad/issues/7), [How do the Exercise Library screens look?](https://github.com/Angh84/LogNLoad/issues/16), [What do the logging and Library screens do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/20)
+Sources: [What is the app's navigation structure?](https://github.com/Angh84/LogNLoad/issues/13), [How does a Workout start, finish, and survive interruption?](https://github.com/Angh84/LogNLoad/issues/7), [How do the Exercise Library screens look?](https://github.com/Angh84/LogNLoad/issues/16), [What do the logging and Library screens do in the cases the spec leaves open?](https://github.com/Angh84/LogNLoad/issues/20), [Muscle Heatmap](https://github.com/Angh84/LogNLoad/issues/60)
