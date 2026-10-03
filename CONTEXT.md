@@ -68,6 +68,10 @@ _Avoid_: Region, body part
 How much one Set of an Exercise counts toward one Muscle Group's training volume, as a weight from 0 to 1 where 1.0 is a full direct Set, e.g. Bench Press has a Triceps emphasis of 0.5, so each Set counts as half a Triceps Set. An Exercise has one or more.
 _Avoid_: Muscle load, involvement, contribution, primary/secondary
 
+**Training Volume**:
+How much a Muscle Group was trained over a period: its Working Sets, each counted by its Exercise's Muscle Emphasis for that Muscle Group, e.g. 3 Sets of Bench Press are 3.0 Upper Chest and 1.5 Triceps. Reps and weight don't count. Always counted with the Exercise's current Muscle Emphases, so editing them recounts past Workouts.
+_Avoid_: Tonnage, workload, sets per muscle
+
 **Load Type**:
 How an Exercise's weight is read: Loaded (external weight), Bodyweight (optional added weight) or Assisted (weight is assistance, so higher is easier).
 _Avoid_: Weight type, mode
