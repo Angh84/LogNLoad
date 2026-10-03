@@ -855,4 +855,52 @@ struct LoggingSessionTests {
         #expect(try stored(finished)?.healthConfirmedVersion == 1)
         #expect(!finished.isHealthPending)
     }
+
+    @Test func aSavedTimeEditAddsOneToTheHealthWriteCounter() throws {
+        let finished = try finishedWorkout([60])
+        finished.healthConfirmedVersion = 1
+        try context.save()
+        let session = try #require(LoggingSession.editing(finished))
+
+        session.workout.startedAt = Self.earlier.addingTimeInterval(-600)
+        session.saveEdit()
+
+        #expect(finished.healthWriteCounter == 2)
+        #expect(finished.isHealthPending)
+    }
+
+    @Test func editsThatLeaveTheTimesAsTheyWereNeverTouchHealth() throws {
+        let finished = try finishedWorkout([60])
+        finished.healthConfirmedVersion = 1
+        try context.save()
+        let session = try #require(LoggingSession.editing(finished))
+
+        session.changeWorkoutName(to: "Legs")
+        session.changeWorkoutNote(to: "Heavy")
+        session.changeWeight(to: 65)
+        session.addSet()
+        session.workout.endedAt = Self.earlier.addingTimeInterval(7200)
+        session.workout.endedAt = Self.earlier.addingTimeInterval(3600)
+        session.saveEdit()
+
+        #expect(finished.healthWriteCounter == 1)
+        #expect(!finished.isHealthPending)
+    }
+
+    @Test func aTimeEditIsWrittenToHealthOnceWithTheNewTimes() async throws {
+        let finished = try finishedWorkout([60])
+        finished.healthConfirmedVersion = 1
+        try context.save()
+        let session = try #require(LoggingSession.editing(finished))
+        let store = FakeHealthStore()
+        let health = HealthSync(store: store)
+
+        session.workout.endedAt = Self.earlier.addingTimeInterval(5400)
+        session.saveEdit()
+        await health.sync(in: context)
+        await health.sync(in: context)
+
+        #expect(store.saved.map(\.version) == [2])
+        #expect(store.saved.map(\.end) == [Self.earlier.addingTimeInterval(5400)])
+    }
 }

@@ -355,6 +355,8 @@ private struct EditModeChrome: ViewModifier {
     /// Done on a Workout left without Sets deletes it instead, as the detail's Delete does.
     let onDeleteWorkout: () -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
+    @Environment(HealthSync.self) private var health
     @State private var problem: LoggingSession.DoneProblem?
     @State private var isConfirmingCancel = false
 
@@ -420,13 +422,14 @@ private struct EditModeChrome: ViewModifier {
             }
     }
 
-    /// Done saves the whole edit, or names the first rule it breaks.
+    /// Done saves the whole edit, or names the first rule it breaks. A time change then reaches Health.
     private func done() {
         if let problem = session.doneProblem(now: .now) {
             self.problem = problem
         } else {
             session.saveEdit()
             dismiss()
+            Task { await health.sync(in: context) }
         }
     }
 

@@ -129,7 +129,7 @@ One per seed UUID ever applied. It outlives its Exercise.
 
 ### Pending Health delete
 
-A tombstone for a Health delete that failed ([healthkit.md](healthkit.md#deletes)).
+A tombstone for a Health delete not yet done ([healthkit.md](healthkit.md#deletes)).
 
 | Attribute | Type | Store | Rule |
 |---|---|---|---|

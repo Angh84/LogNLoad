@@ -7,6 +7,7 @@ struct LibraryView: View {
     @Query(filter: #Predicate<Exercise> { $0.isArchived == true }) private var archived: [Exercise]
     @Query(filter: #Predicate<Workout> { $0.endedAt == nil }) private var activeWorkouts: [Workout]
     @Environment(\.modelContext) private var context
+    @Environment(HealthSync.self) private var health
     @State private var path = NavigationPath()
     @State private var search = ""
     @State private var toast: String?
@@ -107,6 +108,7 @@ struct LibraryView: View {
             fatalError("Could not delete the Workout: \(error)")
         }
         toast = "Workout deleted"
+        Task { await health.sync(in: context) }
     }
 }
 
