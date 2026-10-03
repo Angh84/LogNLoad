@@ -3,13 +3,16 @@ import SwiftUI
 
 /// The Exercise form: a new Exercise (from the picker's Create row or the Library's "+"), or an edit of one from its
 /// page. With history, Load Type and Unilateral are locked and equipment stays within its weight convention. A new
-/// form offers to unarchive the Archived Exercise its name belongs to; an edit form ends with Archive or Delete.
+/// form offers to unarchive the Archived Exercise its name belongs to; an edit form ends with Merge and Archive with
+/// history, or Delete without.
 struct ExerciseFormView: View {
     let onSave: (Exercise) -> Void
     /// A new form's "Unarchive it", with the Archived Exercise its name belongs to.
     private var onUnarchive: ((Exercise) -> Void)?
     /// An edit form's Archive or Delete, done, with the toast to show.
     private var onRemove: ((String) -> Void)?
+    /// An edit form's Merge, done, with the Exercise kept.
+    private var onMerge: ((Exercise) -> Void)?
     /// The Exercise being edited; empty for a new one.
     private let exercise: Exercise?
     @Environment(\.modelContext) private var context
@@ -21,6 +24,7 @@ struct ExerciseFormView: View {
     @State private var isConfirmingDiscard = false
     @State private var isConfirmingArchive = false
     @State private var isConfirmingDelete = false
+    @State private var isPickingMergeTarget = false
 
     /// What the form holds until Save.
     private struct Draft: Equatable {
@@ -40,9 +44,15 @@ struct ExerciseFormView: View {
         _draft = State(initialValue: initial)
     }
 
-    init(editing exercise: Exercise, onSave: @escaping (Exercise) -> Void, onRemove: @escaping (String) -> Void) {
+    init(
+        editing exercise: Exercise,
+        onSave: @escaping (Exercise) -> Void,
+        onRemove: @escaping (String) -> Void,
+        onMerge: @escaping (Exercise) -> Void
+    ) {
         self.onSave = onSave
         self.onRemove = onRemove
+        self.onMerge = onMerge
         self.exercise = exercise
         initial = Draft(
             name: exercise.name ?? "",
@@ -147,6 +157,7 @@ struct ExerciseFormView: View {
             if let exercise {
                 Section {
                     if exercise.hasHistory {
+                        Button("Merge into Another Exercise") { isPickingMergeTarget = true }
                         Button("Archive Exercise") { isConfirmingArchive = true }
                             .disabled(!exercise.canArchive)
                     } else {
@@ -177,6 +188,15 @@ struct ExerciseFormView: View {
         .alert("Discard your changes?", isPresented: $isConfirmingDiscard) {
             Button("Keep Editing", role: .cancel) {}
             Button("Discard", role: .destructive) { dismiss() }
+        }
+        .sheet(isPresented: $isPickingMergeTarget) {
+            if let exercise {
+                MergeSheet(exercise: exercise) { target in
+                    exercise.merge(into: target)
+                    isPickingMergeTarget = false
+                    onMerge?(target)
+                }
+            }
         }
         .alert("Archive \(exercise?.name ?? "")?", isPresented: $isConfirmingArchive) {
             Button("Cancel", role: .cancel) {}
@@ -291,6 +311,93 @@ struct ExerciseFormView: View {
             note: draft.note,
             muscleEmphases: draft.muscleEmphases
         ))
+    }
+}
+
+/// "Merge X into...": the Compatible Exercises to keep it in, then the confirm.
+private struct MergeSheet: View {
+    let exercise: Exercise
+    let onMerge: (Exercise) -> Void
+    @Query private var exercises: [Exercise]
+    @State private var search = ""
+    @State private var target: Exercise?
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        // The merged Exercise is deleted while the sheet closes.
+        if exercise.modelContext == nil {
+            Color.clear
+        } else {
+            targetList
+        }
+    }
+
+    private var targetList: some View {
+        let name = exercise.name ?? ""
+        let targets = exercise.mergeTargets(among: exercises)
+        let alsoMainly = matching(targets.alsoMainly)
+        let others = matching(targets.others)
+        return NavigationStack {
+            List {
+                Text("Pick the Exercise to keep. The Sets in \(DisplayFormat.count(exercise.workoutCount, "Workout")) move to it, then \(name) is deleted.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .listRowBackground(Color.clear)
+                if !alsoMainly.isEmpty {
+                    section("Also mainly \(exercise.topMuscleGroup?.name ?? "")", alsoMainly)
+                }
+                if !others.isEmpty {
+                    section(alsoMainly.isEmpty ? "Matches" : "Other matches", others)
+                }
+                if alsoMainly.isEmpty, others.isEmpty {
+                    Text("No matching Exercise").foregroundStyle(.secondary)
+                }
+                Section {} footer: {
+                    Text(DisplayFormat.mergeFilter(for: exercise, hiddenCount: targets.hiddenCount))
+                }
+            }
+            .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search Exercises")
+            .navigationTitle("Merge \(name) into...")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+            .alert(
+                "Move \(DisplayFormat.count(exercise.workoutCount, "Workout")) from \(name) to \(target?.name ?? "") and delete \(name)?",
+                isPresented: Binding { target != nil } set: { if !$0 { target = nil } },
+                presenting: target
+            ) { target in
+                Button("Cancel", role: .cancel) {}
+                Button("Merge", role: .destructive) { onMerge(target) }
+            } message: { target in
+                let shared = exercise.workoutCount(sharedWith: target)
+                let combined = "\(DisplayFormat.count(shared, "Workout")) already \(shared == 1 ? "has" : "have") \(target.name ?? ""), so the Sets are combined there. "
+                Text((shared > 0 ? combined : "") + "This can't be undone.")
+            }
+        }
+    }
+
+    private func section(_ title: String, _ exercises: [Exercise]) -> some View {
+        Section(title) {
+            ForEach(exercises) { candidate in
+                Button { target = candidate } label: {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(candidate.name ?? "")
+                        Text("\(candidate.equipment?.name ?? "") \u{2013} " + (candidate.hasHistory ? "in \(DisplayFormat.count(candidate.workoutCount, "Workout"))" : "not logged yet"))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .tint(.primary)
+            }
+        }
+    }
+
+    private func matching(_ exercises: [Exercise]) -> [Exercise] {
+        guard let query = trimmed(search) else { return exercises }
+        return exercises.filter { ($0.name ?? "").localizedStandardContains(query) }
     }
 }
 

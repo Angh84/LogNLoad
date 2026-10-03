@@ -442,4 +442,97 @@ struct ExerciseTests {
         #expect(try #require(Exercise.named("Squat", in: context)).isSeed)
         #expect(!custom.isSeed)
     }
+
+    // MARK: Merge
+
+    @Test func mergingMovesEveryEntryToTheTargetAndDeletesTheExercise() throws {
+        let squat = exercise("Squat")
+        let backSquat = exercise("Back Squat")
+        let first = workout(day(20), endedAt: day(20, 18))
+        let second = workout(day(27), endedAt: day(27, 18))
+        log(squat, in: first, [(60, 10)])
+        log(squat, in: second, [(62.5, 10)])
+        try context.save()
+
+        squat.merge(into: backSquat)
+        try context.save()
+
+        #expect(first.exercises == [backSquat])
+        #expect(second.exercises == [backSquat])
+        #expect(backSquat.finishedHistory.map { $0.sortedSets.map(\.weight) } == [[62.5], [60]])
+        #expect(Exercise.named("Squat", in: context) == nil)
+    }
+
+    @Test func mergingCombinesWhereAWorkoutHoldsBoth() throws {
+        let squat = exercise("Squat")
+        let row = exercise("Row")
+        let backSquat = exercise("Back Squat")
+        let both = workout(day(27), endedAt: day(27, 18))
+        log(squat, in: both, [(60, 10), (65, 8)])
+        log(row, in: both, [(50, 10)])
+        log(backSquat, in: both, [(70, 5)])
+        try context.save()
+
+        squat.merge(into: backSquat)
+        try context.save()
+
+        #expect(both.exercises == [backSquat, row])
+        #expect(both.sortedEntries.first?.sortedSets.map(\.weight) == [70, 60, 65])
+    }
+
+    @Test func mergingMovesTheActiveWorkoutsEntryWithItsTargetSets() throws {
+        let squat = exercise("Squat")
+        let backSquat = exercise("Back Squat")
+        let active = workout(day(30), endedAt: nil)
+        let entry = ExerciseEntry(workout: active, exercise: squat, order: 0)
+        _ = WorkoutSet(entry: entry, order: 0, weight: 60, reps: 10, completedAt: day(30))
+        _ = WorkoutSet(entry: entry, order: 1, weight: 62.5, reps: 10)
+        try context.save()
+
+        squat.merge(into: backSquat)
+        try context.save()
+
+        #expect(entry.exercise == backSquat)
+        #expect(entry.sortedSets.map(\.isTarget) == [false, true])
+    }
+
+    @Test func anExerciseIsOnlyMergedIntoACompatibleOne() throws {
+        let squat = exercise("Squat")
+        let goblet = exercise("Goblet Squat", .dumbbell)
+        log(squat, in: workout(day(27), endedAt: day(27, 18)), [(60, 10)])
+        try context.save()
+
+        squat.merge(into: goblet)
+        try context.save()
+
+        #expect(Exercise.named("Squat", in: context) == squat)
+        #expect(!goblet.hasHistory)
+    }
+
+    @Test func sharedWorkoutsAreTheOnesHoldingBoth() {
+        let squat = exercise("Squat")
+        let backSquat = exercise("Back Squat")
+        let both = workout(day(27), endedAt: day(27, 18))
+        log(squat, in: both, [(60, 10)])
+        log(backSquat, in: both, [(70, 5)])
+        log(squat, in: workout(day(28), endedAt: day(28, 18)), [(60, 10)])
+
+        #expect(squat.workoutCount(sharedWith: backSquat) == 1)
+    }
+
+    @Test func mergeTargetsAreCompatibleAToZWithTheSameTopMuscleGroupFirst() {
+        let squat = exercise("Squat")
+        let hack = exercise("Hack Squat", .machine)
+        let front = exercise("Front Squat")
+        let thrust = exercise("Hip Thrust", emphases: [MuscleEmphasis(muscleGroup: .glutes, weight: 1)])
+        let goblet = exercise("Goblet Squat", .dumbbell)
+        let pistol = exercise("Pistol Squat", isUnilateral: true)
+        let archived = exercise("Old Squat", isArchived: true)
+
+        let targets = squat.mergeTargets(among: [squat, hack, front, thrust, goblet, pistol, archived])
+
+        #expect(targets.alsoMainly == [front, hack])
+        #expect(targets.others == [thrust])
+        #expect(targets.hiddenCount == 2)
+    }
 }

@@ -354,4 +354,10 @@ struct DisplayFormatTests {
         #expect(months.map(\.month) == [date(2026, 9, 1, 0), date(2026, 8, 1, 0)])
         #expect(months.map(\.entries) == [[entries[0], entries[1]], [entries[2]]])
     }
+
+    @Test func theMergeFilterNamesWhatItKeepsAndHowManyItHides() {
+        #expect(DisplayFormat.mergeFilter(for: exercise(), hiddenCount: 3) == "Only Exercises with the same Load Type (Loaded), not unilateral, with weight as one total. 3 others are hidden.")
+        #expect(DisplayFormat.mergeFilter(for: exercise(.dumbbell, isUnilateral: true), hiddenCount: 1) == "Only Exercises with the same Load Type (Loaded), unilateral, with weight per dumbbell or kettlebell. 1 other is hidden.")
+        #expect(DisplayFormat.mergeFilter(for: exercise(.bodyweight, loadType: .bodyweight), hiddenCount: 0) == "Only Exercises with the same Load Type (Bodyweight), not unilateral, with weight as one total.")
+    }
 }

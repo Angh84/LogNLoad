@@ -85,6 +85,14 @@ enum DisplayFormat {
             : "Equipment can't change to Dumbbell or Kettlebell."
     }
 
+    /// The merge sheet's footer: what Compatible means for `exercise`, and how many Exercises that hides.
+    static func mergeFilter(for exercise: Exercise, hiddenCount: Int) -> String {
+        let weight = exercise.weightConvention == .perImplement ? "per dumbbell or kettlebell" : "as one total"
+        let filter = "Only Exercises with the same Load Type (\(exercise.loadType.name)), \(exercise.isUnilateral ? "unilateral" : "not unilateral"), with weight \(weight)."
+        guard hiddenCount > 0 else { return filter }
+        return filter + " \(hiddenCount) \(hiddenCount == 1 ? "other is" : "others are") hidden."
+    }
+
     /// "45 min", "1 h 10 min", "2 h", from both times truncated to the minute so it matches the times shown.
     static func duration(from start: Date, to end: Date) -> String {
         let (hours, rest) = minutes(from: start, to: end).quotientAndRemainder(dividingBy: 60)
