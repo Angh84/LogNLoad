@@ -36,8 +36,14 @@ private struct MusclesList: View {
         let volume = TrainingVolume(workouts)
         List {
             Section {
-                legend
-                    .listRowBackground(Color.clear)
+                VStack(spacing: 14) {
+                    HStack(alignment: .top, spacing: 8) {
+                        figureColumn(.front, volume)
+                        figureColumn(.back, volume)
+                    }
+                    legend
+                }
+                .listRowBackground(Color.clear)
             }
             ForEach(BodyArea.allCases, id: \.self) { area in
                 Section(area.name) {
@@ -45,7 +51,7 @@ private struct MusclesList: View {
                         LabeledContent(group.name) {
                             HStack(spacing: 10) {
                                 Circle()
-                                    .fill(VolumeBand(volume[group]).color)
+                                    .fill(volume.band(group).color)
                                     .frame(width: 11, height: 11)
                                 Text(DisplayFormat.trainingVolume(volume[group]))
                                     .monospacedDigit()
@@ -54,6 +60,15 @@ private struct MusclesList: View {
                     }
                 }
             }
+        }
+    }
+
+    private func figureColumn(_ figure: MuscleFigure, _ volume: TrainingVolume) -> some View {
+        VStack(spacing: 4) {
+            MuscleFigureView(figure: figure, volume: volume)
+            Text(figure.facing.name)
+                .font(.caption.smallCaps())
+                .foregroundStyle(.secondary)
         }
     }
 

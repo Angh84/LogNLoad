@@ -21,6 +21,10 @@ struct TrainingVolume {
         ((volumes[muscleGroup] ?? 0) * 10).rounded() / 10
     }
 
+    func band(_ muscleGroup: MuscleGroup) -> VolumeBand {
+        VolumeBand(self[muscleGroup])
+    }
+
     /// Today and the 6 calendar days before it. Each end is the start of its own day, which daylight saving can move
     /// off midnight.
     static func window(endingOn now: Date, calendar: Calendar) -> DateInterval {
