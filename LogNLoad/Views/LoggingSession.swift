@@ -50,11 +50,14 @@ final class LoggingSession {
         return LoggingSession(workout: copy, isEditing: true)
     }
 
-    /// Appends the Exercise's Entry, or goes to it with a toast when it is already in the Workout.
+    /// Appends the Exercise's Entry, or goes to it with a toast when it is already in the Workout. An Archived
+    /// Exercise is never added.
     func add(_ exercise: Exercise) {
         let exercise = inSessionContext(exercise)
         if workout.contains(exercise) {
             toast = "\(exercise.name ?? "") is already in this Workout"
+        } else if exercise.isArchived {
+            return
         }
         let entry = workout.add(exercise)
         save()
@@ -67,6 +70,15 @@ final class LoggingSession {
         let remaining = workout.swap(entry, to: inSessionContext(exercise))
         save()
         select(remaining)
+    }
+
+    /// The picker's "Unarchive <name>" row and its form's "Unarchive it": unarchives the Exercise, in the edit
+    /// session while editing, and adds it.
+    func unarchiveAndAdd(_ exercise: Exercise) {
+        let exercise = inSessionContext(exercise)
+        exercise.isArchived = false
+        add(exercise)
+        toast = "\(exercise.name ?? "") is back in the Library"
     }
 
     /// The picker's Exercises live in the main context; an edit session works in its own.

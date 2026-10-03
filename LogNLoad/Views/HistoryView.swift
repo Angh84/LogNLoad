@@ -13,7 +13,7 @@ struct HistoryView: View {
         NavigationStack(path: $path) {
             HistoryList(justFinished: justFinished, workoutToDelete: $workoutToDelete)
                 .navigationTitle("History")
-                .sharedDestinations(path: $path, onDeleteWorkout: delete)
+                .sharedDestinations(path: $path, toast: $toast, onDeleteWorkout: delete)
                 .deleteWorkoutConfirm($workoutToDelete, onDelete: delete)
         }
         // Over the whole stack, so it shows on the screen a deleted Workout's detail closes onto.

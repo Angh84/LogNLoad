@@ -1,14 +1,43 @@
 import SwiftData
 import SwiftUI
 
-/// An Exercise: its details, note, Muscle Groups, tiles and history of finished Workouts.
+/// An Exercise: its details, note, Muscle Groups, tiles and history of finished Workouts. An Archived Exercise's page
+/// starts with a banner to unarchive it, and has no Edit.
 struct ExercisePageView: View {
     let exercise: Exercise
     @Query(filter: #Predicate<Workout> { $0.endedAt == nil }) private var activeWorkouts: [Workout]
+    @Environment(\.modelContext) private var context
 
     var body: some View {
+        // A deleted Exercise's page is on its way out.
+        if exercise.modelContext == nil {
+            Color.clear
+        } else {
+            page
+        }
+    }
+
+    private var page: some View {
         let history = exercise.finishedHistory
-        List {
+        return List {
+            if exercise.isArchived {
+                Section {
+                    HStack {
+                        Text("Archived. It's hidden from the Library and the Exercise picker.")
+                            .font(.subheadline)
+                        Spacer()
+                        Button("Unarchive") {
+                            exercise.isArchived = false
+                            do {
+                                try context.save()
+                            } catch {
+                                fatalError("Could not save the Exercise: \(error)")
+                            }
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+            }
             Section {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(DisplayFormat.exerciseDetails(exercise))
@@ -68,8 +97,10 @@ struct ExercisePageView: View {
         }
         .navigationTitle(exercise.name ?? "")
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink("Edit", value: ExerciseFormRoute.edit(exercise))
+            if !exercise.isArchived {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink("Edit", value: ExerciseFormRoute.edit(exercise))
+                }
             }
         }
     }

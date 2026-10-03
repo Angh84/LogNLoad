@@ -2,8 +2,8 @@ import SwiftData
 import SwiftUI
 
 /// Picks an Exercise to add to the Active Workout: "In this Workout", "Recent" and "All Exercises", or creates one
-/// when the search names none. Archived Exercises are not offered. In swap mode it offers only Compatible Exercises,
-/// with no Create row.
+/// when the search names none. Archived Exercises are not offered; a search naming one offers to unarchive it. In swap
+/// mode it offers only Compatible Exercises, with no Create or Unarchive row.
 struct ExercisePickerView: View {
     let session: LoggingSession
     /// Edit mode's "Swap Exercise": the Entry whose Exercise is being replaced.
@@ -27,16 +27,24 @@ struct ExercisePickerView: View {
     var body: some View {
         NavigationStack {
             List {
-                if swappingEntry == nil, let name = trimmed(search), Exercise.named(name, in: names) == nil {
-                    NavigationLink {
-                        ExerciseFormView(name: name) { exercise in
-                            session.create(exercise)
-                            dismiss()
+                if swappingEntry == nil, let name = trimmed(search) {
+                    if let named = Exercise.named(name, in: names) {
+                        if named.isArchived {
+                            Button("Unarchive \(named.name ?? "")", systemImage: "tray.and.arrow.up") { unarchive(named) }
                         }
-                        .environment(\.modelContext, names)
-                    } label: {
-                        Label("Create \"\(name)\"", systemImage: "plus")
-                            .foregroundStyle(.tint)
+                    } else {
+                        NavigationLink {
+                            ExerciseFormView(name: name) { exercise in
+                                session.create(exercise)
+                                dismiss()
+                            } onUnarchive: { exercise in
+                                unarchive(exercise)
+                            }
+                            .environment(\.modelContext, names)
+                        } label: {
+                            Label("Create \"\(name)\"", systemImage: "plus")
+                                .foregroundStyle(.tint)
+                        }
                     }
                 }
                 section("In this Workout", offered(session.workout.exercises))
@@ -85,6 +93,11 @@ struct ExercisePickerView: View {
                 }
             }
         }
+    }
+
+    private func unarchive(_ exercise: Exercise) {
+        session.unarchiveAndAdd(exercise)
+        dismiss()
     }
 
     private func row(_ exercise: Exercise) -> some View {
