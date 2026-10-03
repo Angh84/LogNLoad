@@ -54,6 +54,16 @@ struct DisplayFormatTests {
         #expect(DisplayFormat.trainingVolume(7.5, locale: Self.swedish) == "7,5")
     }
 
+    @Test(arguments: [
+        (MuscleGroup.triceps, 7.5, "en_GB", "Triceps \u{B7} 7.5 Sets"),
+        (.rotatorCuff, 0, "en_GB", "Rotator Cuff \u{B7} 0 Sets"),
+        (.quads, 1, "en_GB", "Quads \u{B7} 1.0 Sets"),
+        (.quads, 18, "sv_SE", "Quads \u{B7} 18,0 Sets"),
+    ])
+    func aSelectedMuscleGroupIsItsNameAndItsSets(muscleGroup: MuscleGroup, volume: Double, locale: String, text: String) {
+        #expect(DisplayFormat.selected(muscleGroup, volume: volume, locale: Locale(identifier: locale)) == text)
+    }
+
     // MARK: One Set
 
     @Test func aLoadedSetIsItsWeightTimesItsReps() {
