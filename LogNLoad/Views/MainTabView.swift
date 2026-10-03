@@ -2,7 +2,7 @@ import SwiftData
 import SwiftUI
 
 struct MainTabView: View {
-    enum AppTab { case history, exercises }
+    enum AppTab { case muscles, history, exercises }
 
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
@@ -11,7 +11,7 @@ struct MainTabView: View {
     /// Kept while the cover is minimized, so expanding it keeps the current Entry and Set.
     @State private var session: LoggingSession?
     @State private var isLoggingExpanded = false
-    @State private var tab = AppTab.history
+    @State private var tab = AppTab.muscles
     @State private var finishes = 0
     /// The Workout just finished, for the History list to land on.
     @State private var justFinished: UUID?
@@ -19,6 +19,9 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $tab) {
+            Tab("Muscles", systemImage: "figure.strengthtraining.traditional", value: .muscles) {
+                MusclesView()
+            }
             Tab("History", systemImage: "clock", value: .history) {
                 HistoryView(justFinished: justFinished)
             }

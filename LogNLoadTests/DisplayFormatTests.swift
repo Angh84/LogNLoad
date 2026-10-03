@@ -43,6 +43,17 @@ struct DisplayFormatTests {
         #expect(DisplayFormat.weight(62.5, locale: Self.swedish) == "62,5 kg")
     }
 
+    // MARK: Training Volume
+
+    @Test(arguments: [(7.5, "7.5"), (12, "12.0"), (0.3, "0.3"), (0, "0")])
+    func trainingVolumeHasOneDecimalAndZeroIsBare(volume: Double, text: String) {
+        #expect(DisplayFormat.trainingVolume(volume, locale: Self.british) == text)
+    }
+
+    @Test func trainingVolumeUsesTheRegionsDecimalSeparator() {
+        #expect(DisplayFormat.trainingVolume(7.5, locale: Self.swedish) == "7,5")
+    }
+
     // MARK: One Set
 
     @Test func aLoadedSetIsItsWeightTimesItsReps() {

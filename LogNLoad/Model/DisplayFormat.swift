@@ -7,6 +7,11 @@ enum DisplayFormat {
         kg.formatted(.number.precision(.fractionLength(0...2)).locale(locale)) + " kg"
     }
 
+    /// One decimal, "7.5" or "12.0", with zero as a bare "0".
+    static func trainingVolume(_ volume: Double, locale: Locale = .current) -> String {
+        volume == 0 ? "0" : volume.formatted(.number.precision(.fractionLength(1)).locale(locale))
+    }
+
     /// "62.5 kg x 10", "BW+10 kg x 8", "14 kg x 10/9", with the multiplication sign.
     static func set(_ set: WorkoutSet, of exercise: Exercise, locale: Locale = .current) -> String {
         load(set.weight, of: exercise, locale: locale) + " \u{D7} " + reps(of: set, exercise)
