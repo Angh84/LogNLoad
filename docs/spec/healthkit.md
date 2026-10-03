@@ -36,7 +36,7 @@ What a finished Workout writes to Apple Health, when permission is asked, how ed
 ## Deletes
 
 - Deleting a Workout in the app deletes the Health workouts the app saved with that Workout's sync identifier.
-- If that delete fails, a [Pending Health delete](data-model.md#pending-health-delete) keeps the Workout's `id` for retry. It is removed once the delete succeeds.
+- A [Pending Health delete](data-model.md#pending-health-delete) keeping the Workout's `id` is saved with the Workout's delete, and removed once the Health delete succeeds. A failure leaves it for retry.
 - A workout the user deletes in Health is left alone; the app doesn't observe Health deletions. It comes back only if that Workout's times are edited, since the rewrite saves it again.
 
 ## Retry
@@ -49,6 +49,7 @@ What a finished Workout writes to Apple Health, when permission is asked, how ed
 
 - A sync-identifier replace leaves exactly one workout in Health. If not, switch rewrites to the fallback.
 - After the Personal Team's 7-day re-sign and reinstall, the app can still replace and delete workouts it saved earlier.
+- In the iOS 27 simulator, a replace left exactly one live workout and marked the older version deleted, so rewrites replace. Deleting the Workout left none, and a delete that matched nothing succeeded. Neither check above has run on the iPhone yet.
 
 ## Edge cases
 

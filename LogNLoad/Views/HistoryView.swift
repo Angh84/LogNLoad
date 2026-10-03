@@ -8,6 +8,8 @@ struct HistoryView: View {
     @State private var path = NavigationPath()
     @State private var workoutToDelete: Workout?
     @State private var toast: String?
+    @Environment(\.modelContext) private var context
+    @Environment(HealthSync.self) private var health
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -29,6 +31,7 @@ struct HistoryView: View {
             fatalError("Could not delete the Workout: \(error)")
         }
         toast = "Workout deleted"
+        Task { await health.sync(in: context) }
     }
 }
 

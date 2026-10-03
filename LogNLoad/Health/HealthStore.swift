@@ -7,6 +7,8 @@ protocol HealthStore {
     /// Share permission for workouts only. The system sheet's Don't Allow is the opt-out.
     func requestAuthorization() async
     func save(_ workout: HealthWorkout) async throws
+    /// Deletes the workouts this app saved with the Workout's sync identifier. Finding none counts as done.
+    func deleteWorkouts(syncIdentifier id: UUID) async throws
 }
 
 /// What a finished Workout writes to Health: its times, and the sync identifier and version that let a later
@@ -50,5 +52,10 @@ final class AppleHealthStore: HealthStore {
             builder.discardWorkout()
             throw error
         }
+    }
+
+    func deleteWorkouts(syncIdentifier id: UUID) async throws {
+        let predicate = HKQuery.predicateForObjects(withMetadataKey: HKMetadataKeySyncIdentifier, allowedValues: [id.uuidString])
+        _ = try await store.deleteObjects(of: HKObjectType.workoutType(), predicate: predicate)
     }
 }

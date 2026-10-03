@@ -4,12 +4,15 @@ import SwiftData
 import Testing
 @testable import LogNLoad
 
-/// Records permission requests and what is saved, and fails every save while `isFailing`.
+/// Records permission requests, saves and deletes, and fails every save while `isFailingSaves` and every delete while
+/// `isFailingDeletes`.
 @MainActor
 final class FakeHealthStore: HealthStore {
     var saved: [HealthWorkout] = []
-    var isFailing = false
-    /// "request" and "save", in the order they happen.
+    var deleted: [UUID] = []
+    var isFailingSaves = false
+    var isFailingDeletes = false
+    /// "request", "save" and "delete", in the order they happen.
     var calls: [String] = []
 
     func requestAuthorization() async {
@@ -17,9 +20,15 @@ final class FakeHealthStore: HealthStore {
     }
 
     func save(_ workout: HealthWorkout) async throws {
-        if isFailing { throw CocoaError(.userCancelled) }
+        if isFailingSaves { throw CocoaError(.userCancelled) }
         saved.append(workout)
         calls.append("save")
+    }
+
+    func deleteWorkouts(syncIdentifier id: UUID) async throws {
+        if isFailingDeletes { throw CocoaError(.userCancelled) }
+        deleted.append(id)
+        calls.append("delete")
     }
 }
 
@@ -86,13 +95,13 @@ struct HealthSyncTests {
     @Test func aFailedWriteStaysPendingAndTheNextPassWritesIt() async throws {
         let finished = workout(28)
         try context.save()
-        store.isFailing = true
+        store.isFailingSaves = true
 
         await sync.sync(in: context)
         #expect(finished.isHealthPending)
         #expect(finished.healthConfirmedVersion == nil)
 
-        store.isFailing = false
+        store.isFailingSaves = false
         await sync.sync(in: context)
         #expect(store.saved.map(\.id) == [finished.id])
         #expect(!finished.isHealthPending)
@@ -134,6 +143,63 @@ struct HealthSyncTests {
         #expect(blocking.saved.count == 1)
     }
 
+    // MARK: Rewrites and deletes
+
+    @Test func aRewriteSavesTheHigherSyncVersionToReplaceTheOldWorkout() async throws {
+        let edited = workout(28)
+        edited.healthWriteCounter = 2
+        edited.healthConfirmedVersion = 1
+        try context.save()
+
+        await sync.sync(in: context)
+
+        #expect(store.calls == ["save"])
+        #expect(store.saved.map(\.version) == [2])
+        #expect(!edited.isHealthPending)
+    }
+
+    @Test func theFallbackRewriteDeletesTheSyncIdentifiersWorkoutsThenSaves() async throws {
+        let first = workout(27)
+        let edited = workout(28)
+        edited.healthWriteCounter = 2
+        edited.healthConfirmedVersion = 1
+        try context.save()
+        let fallback = HealthSync(store: store, rewrite: .deleteThenSave)
+
+        await fallback.sync(in: context)
+
+        #expect(store.calls == ["save", "delete", "save"])
+        #expect(store.deleted == [edited.id])
+        #expect(store.saved.map(\.id) == [first.id, edited.id])
+    }
+
+    @Test func deletingAWorkoutDeletesItsHealthWorkoutsAndThenItsPendingHealthDelete() async throws {
+        let gone = workout(28)
+        let id = gone.id
+        try context.save()
+        try gone.delete()
+        #expect(try context.fetch(FetchDescriptor<PendingHealthDelete>()).map(\.workoutId) == [id])
+
+        await sync.sync(in: context)
+
+        #expect(store.deleted == [id])
+        #expect(try context.fetchCount(FetchDescriptor<PendingHealthDelete>()) == 0)
+    }
+
+    @Test func aFailedHealthDeleteStaysPendingUntilARetrySucceeds() async throws {
+        let gone = workout(28)
+        try context.save()
+        try gone.delete()
+        store.isFailingDeletes = true
+
+        await sync.sync(in: context)
+        #expect(try context.fetchCount(FetchDescriptor<PendingHealthDelete>()) == 1)
+
+        store.isFailingDeletes = false
+        await sync.sync(in: context)
+        #expect(try context.fetchCount(FetchDescriptor<PendingHealthDelete>()) == 0)
+    }
+
     @Test func aLaunchPastOnboardingRequestsPermissionBeforeItsPass() async throws {
         workout(28)
         try context.save()
@@ -152,6 +218,8 @@ final class BlockingHealthStore: HealthStore {
     private var waiting: CheckedContinuation<Void, Never>?
 
     func requestAuthorization() async {}
+
+    func deleteWorkouts(syncIdentifier id: UUID) async throws {}
 
     func save(_ workout: HealthWorkout) async throws {
         saved.append(workout)

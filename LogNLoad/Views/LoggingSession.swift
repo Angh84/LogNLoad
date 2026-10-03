@@ -303,9 +303,13 @@ final class LoggingSession {
         }
         let main = context.container.mainContext
         let id = workout.id
-        // A Health pass in the main context can confirm the Workout while it is edited, after this copy was made.
         if let current = try? main.fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.id == id })).first {
+            // A Health pass in the main context can confirm the Workout while it is edited, after this copy was made.
             workout.healthConfirmedVersion = current.healthConfirmedVersion
+            // Only a saved change to the times reaches Health, by making the Workout pending again.
+            if workout.startedAt != current.startedAt || workout.endedAt != current.endedAt {
+                workout.healthWriteCounter += 1
+            }
         }
         do {
             try context.save()

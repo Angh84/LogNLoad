@@ -159,9 +159,11 @@ extension Workout {
         try context.save()
     }
 
-    /// Delete Workout: hard-deletes a finished Workout, its Entries and its Sets. No trash, no undo.
+    /// Delete Workout: hard-deletes a finished Workout, its Entries and its Sets. No trash, no undo. A Pending Health
+    /// delete takes its place until the next Health pass deletes its Health workouts.
     func delete() throws {
         guard let context = modelContext else { return }
+        context.insert(PendingHealthDelete(workoutId: id))
         context.delete(self)
         try context.save()
     }
