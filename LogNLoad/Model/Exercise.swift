@@ -96,6 +96,30 @@ extension Exercise {
     /// Entries in any Workout, the Active Workout included.
     var hasHistory: Bool { !(entries ?? []).isEmpty }
 
+    var isInActiveWorkout: Bool {
+        (entries ?? []).contains { $0.workout?.isActive == true }
+    }
+
+    /// Only an Exercise with history is archived, and never while it is in the Active Workout.
+    var canArchive: Bool { hasHistory && !isInActiveWorkout }
+
+    func archive() {
+        if canArchive { isArchived = true }
+    }
+
+    /// Hard-deletes an Exercise without history; one with history can only be archived. A seed's Seed record stays,
+    /// so a deleted seed never comes back.
+    func delete() {
+        guard !hasHistory else { return }
+        modelContext?.delete(self)
+    }
+
+    /// A seed, adopted ones included: its `id` has a Seed record.
+    var isSeed: Bool {
+        let id = id
+        return ((try? modelContext?.fetchCount(FetchDescriptor<SeedRecord>(predicate: #Predicate { $0.id == id }))) ?? 0) > 0
+    }
+
     var workoutCount: Int {
         Set((entries ?? []).compactMap { $0.workout?.id }).count
     }

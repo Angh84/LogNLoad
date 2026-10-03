@@ -747,4 +747,63 @@ struct LoggingSessionTests {
         let saved = try #require(try stored(finished))
         #expect(saved.sortedEntries.map { $0.sortedSets.map(\.weight) } == [[40, 60, 70]])
     }
+
+    // MARK: Archived Exercises
+
+    @Test func anArchivedExerciseIsNeverAddedToTheWorkout() {
+        let curl = exercise("Curl")
+        curl.isArchived = true
+        let session = LoggingSession(workout: workout)
+
+        session.add(curl)
+
+        #expect(workout.sortedEntries.isEmpty)
+        #expect(session.currentEntry == nil)
+    }
+
+    @Test func pickingAnArchivedExerciseAlreadyInTheEditedWorkoutGoesToItsEntry() throws {
+        let finished = try finishedWorkout([60], [40])
+        let archived = try #require(finished.sortedEntries.last?.exercise)
+        archived.isArchived = true
+        try context.save()
+        let session = try #require(LoggingSession.editing(finished))
+
+        session.add(archived)
+
+        #expect(session.workout.sortedEntries.count == 2)
+        #expect(session.currentEntry == session.workout.sortedEntries.last)
+        #expect(session.toast == "Exercise 1 is already in this Workout")
+    }
+
+    @Test func unarchivingFromThePickerAddsTheExerciseWithPrefillAndAToast() throws {
+        let finished = try finishedWorkout([60, 70])
+        let archived = try #require(finished.sortedEntries.first?.exercise)
+        archived.isArchived = true
+        try context.save()
+        let session = LoggingSession(workout: workout)
+
+        session.unarchiveAndAdd(archived)
+
+        #expect(!archived.isArchived)
+        #expect(session.currentEntry?.exercise == archived)
+        #expect(session.currentEntry?.sortedSets.map(\.weight) == [60, 70])
+        #expect(session.toast == "Exercise 0 is back in the Library")
+        #expect(!context.hasChanges)
+    }
+
+    @Test func unarchivingWhileEditingWaitsForDone() throws {
+        let finished = try finishedWorkout([60])
+        let curl = exercise("Curl")
+        curl.isArchived = true
+        try context.save()
+        let session = try #require(LoggingSession.editing(finished))
+
+        session.unarchiveAndAdd(curl)
+
+        #expect(curl.isArchived)
+        #expect(session.currentEntry?.exercise?.name == "Curl")
+        session.saveEdit()
+        #expect(!curl.isArchived)
+        #expect(finished.sortedEntries.map { $0.exercise?.name } == ["Exercise 0", "Curl"])
+    }
 }

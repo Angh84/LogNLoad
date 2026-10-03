@@ -379,4 +379,67 @@ struct ExerciseTests {
         #expect(row.loadType == .assisted)
         #expect(row.isUnilateral)
     }
+
+    // MARK: Archive and delete
+
+    @Test func anExerciseWithHistoryIsArchived() {
+        let squat = exercise("Squat")
+        log(squat, in: workout(day(28), endedAt: day(28, 18)), [(60, 10)])
+
+        #expect(squat.canArchive)
+        squat.archive()
+
+        #expect(squat.isArchived)
+    }
+
+    @Test func anExerciseWithoutHistoryIsNeverArchived() {
+        let squat = exercise("Squat")
+
+        #expect(!squat.canArchive)
+        squat.archive()
+
+        #expect(!squat.isArchived)
+    }
+
+    @Test func anExerciseInTheActiveWorkoutIsNeverArchived() {
+        let squat = exercise("Squat")
+        log(squat, in: workout(day(28), endedAt: day(28, 18)), [(60, 10)])
+        log(squat, in: workout(day(30), endedAt: nil), [(62.5, 10)])
+
+        #expect(squat.isInActiveWorkout)
+        #expect(!squat.canArchive)
+        squat.archive()
+
+        #expect(!squat.isArchived)
+    }
+
+    @Test func anExerciseWithoutHistoryIsHardDeleted() throws {
+        let squat = exercise("Squat")
+        try context.save()
+
+        squat.delete()
+        try context.save()
+
+        #expect(try context.fetchCount(FetchDescriptor<Exercise>()) == 0)
+    }
+
+    @Test func anExerciseWithHistoryIsNeverDeleted() throws {
+        let squat = exercise("Squat")
+        log(squat, in: workout(day(28), endedAt: day(28, 18)), [(60, 10)])
+        try context.save()
+
+        squat.delete()
+        try context.save()
+
+        #expect(try context.fetchCount(FetchDescriptor<Exercise>()) == 1)
+    }
+
+    @Test func aSeedIsKnownByItsSeedRecord() throws {
+        let seed = SeedEntry("00000000-0000-0000-0000-000000000001", "Squat", .barbell, [.quads: 1.0])
+        try SeedEntry.apply([seed], in: context)
+        let custom = exercise("Zercher Squat")
+
+        #expect(try #require(Exercise.named("Squat", in: context)).isSeed)
+        #expect(!custom.isSeed)
+    }
 }

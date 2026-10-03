@@ -2,9 +2,14 @@ import SwiftData
 import SwiftUI
 
 /// The Exercise form: a new Exercise (from the picker's Create row or the Library's "+"), or an edit of one from its
-/// page. With history, Load Type and Unilateral are locked and equipment stays within its weight convention.
+/// page. With history, Load Type and Unilateral are locked and equipment stays within its weight convention. A new
+/// form offers to unarchive the Archived Exercise its name belongs to; an edit form ends with Archive or Delete.
 struct ExerciseFormView: View {
     let onSave: (Exercise) -> Void
+    /// A new form's "Unarchive it", with the Archived Exercise its name belongs to.
+    private var onUnarchive: ((Exercise) -> Void)?
+    /// An edit form's Archive or Delete, done, with the toast to show.
+    private var onRemove: ((String) -> Void)?
     /// The Exercise being edited; empty for a new one.
     private let exercise: Exercise?
     @Environment(\.modelContext) private var context
@@ -14,6 +19,8 @@ struct ExerciseFormView: View {
     /// The added Muscle Group whose weight control is open.
     @State private var adjusting: MuscleGroup?
     @State private var isConfirmingDiscard = false
+    @State private var isConfirmingArchive = false
+    @State private var isConfirmingDelete = false
 
     /// What the form holds until Save.
     private struct Draft: Equatable {
@@ -25,15 +32,17 @@ struct ExerciseFormView: View {
         var note = ""
     }
 
-    init(name: String, onSave: @escaping (Exercise) -> Void) {
+    init(name: String, onSave: @escaping (Exercise) -> Void, onUnarchive: @escaping (Exercise) -> Void) {
         self.onSave = onSave
+        self.onUnarchive = onUnarchive
         exercise = nil
         initial = Draft(name: name)
         _draft = State(initialValue: initial)
     }
 
-    init(editing exercise: Exercise, onSave: @escaping (Exercise) -> Void) {
+    init(editing exercise: Exercise, onSave: @escaping (Exercise) -> Void, onRemove: @escaping (String) -> Void) {
         self.onSave = onSave
+        self.onRemove = onRemove
         self.exercise = exercise
         initial = Draft(
             name: exercise.name ?? "",
@@ -56,8 +65,14 @@ struct ExerciseFormView: View {
                 TextField("Name", text: $draft.name)
             } footer: {
                 if let conflict, let name = conflict.name {
-                    Text(conflict.isArchived ? "\(name) is archived." : "You already have an Exercise called \(name).")
-                        .foregroundStyle(.red)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(conflict.isArchived ? "\(name) is archived." : "You already have an Exercise called \(name).")
+                            .foregroundStyle(.red)
+                        if conflict.isArchived, let onUnarchive {
+                            Button("Unarchive it") { onUnarchive(conflict) }
+                                .font(.footnote.weight(.semibold))
+                        }
+                    }
                 }
             }
             Section {
@@ -129,6 +144,20 @@ struct ExerciseFormView: View {
                     Text("Add a name, equipment and at least one Muscle Group to save.")
                 }
             }
+            if let exercise {
+                Section {
+                    if exercise.hasHistory {
+                        Button("Archive Exercise") { isConfirmingArchive = true }
+                            .disabled(!exercise.canArchive)
+                    } else {
+                        Button("Delete Exercise", role: .destructive) { isConfirmingDelete = true }
+                    }
+                } footer: {
+                    if exercise.isInActiveWorkout {
+                        Text("It's in your current Workout, so it can't be archived yet.")
+                    }
+                }
+            }
         }
         .navigationTitle(exercise == nil ? "New Exercise" : "Edit Exercise")
         .navigationBarTitleDisplayMode(.inline)
@@ -149,6 +178,26 @@ struct ExerciseFormView: View {
             Button("Keep Editing", role: .cancel) {}
             Button("Discard", role: .destructive) { dismiss() }
         }
+        .alert("Archive \(exercise?.name ?? "")?", isPresented: $isConfirmingArchive) {
+            Button("Cancel", role: .cancel) {}
+            Button("Archive") { remove("archived") { $0.archive() } }
+        } message: {
+            Text("It's in \(DisplayFormat.count(exercise?.workoutCount ?? 0, "Workout")), so it stays in your history. It's hidden from the Library and the Exercise picker until you unarchive it.")
+        }
+        .alert("Delete \(exercise?.name ?? "")?", isPresented: $isConfirmingDelete) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) { remove("deleted") { $0.delete() } }
+        } message: {
+            Text("It isn't in any Workout, so it's deleted for good." + (exercise?.isSeed == true ? " Starter Exercises you delete don't come back." : ""))
+        }
+    }
+
+    /// Archive or Delete, then the toast "X archived" or "X deleted".
+    private func remove(_ verb: String, _ action: (Exercise) -> Void) {
+        guard let exercise else { return }
+        let name = exercise.name ?? ""
+        action(exercise)
+        onRemove?("\(name) \(verb)")
     }
 
     /// All 22 Muscle Groups in Body Area rows. Tapping one adds it at 1.0, last in stored order; tapping an added one
