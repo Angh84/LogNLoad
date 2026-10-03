@@ -300,6 +300,18 @@ struct ExerciseTests {
         #expect(Exercise.recent(for: active, in: context).isEmpty)
     }
 
+    @Test func recentLeavesOutWhatTheSwapPickerCannotOfferBeforeCountingToEight() throws {
+        let exercises = (1...10).map { exercise("Exercise \($0)", $0.isMultiple(of: 2) ? .dumbbell : .barbell) }
+        let finished = workout(day(28), endedAt: day(28, 18))
+        for exercise in exercises { log(exercise, in: finished, [(20, 10)]) }
+        let active = workout(day(30), endedAt: nil)
+        try context.save()
+
+        let recent = Exercise.recent(for: active, in: context) { $0.equipment == .barbell }
+
+        #expect(recent.map(\.name) == ["Exercise 1", "Exercise 3", "Exercise 5", "Exercise 7", "Exercise 9"])
+    }
+
     // MARK: Library
 
     @Test func withoutHistoryAnyEquipmentIsAllowed() {

@@ -60,14 +60,15 @@ extension Exercise {
     }
 
     /// The picker's "Recent": up to 8 Exercises from finished Workouts, newest `startedAt` first, each once, a
-    /// Workout's Exercises in its Entry order. `workout`'s own and Archived Exercises are left out before counting.
-    static func recent(for workout: Workout, in context: ModelContext) -> [Exercise] {
+    /// Workout's Exercises in its Entry order. `workout`'s own, Archived Exercises and those `isOffered` turns away
+    /// (the swap picker's) are left out before counting.
+    static func recent(for workout: Workout, in context: ModelContext, where isOffered: (Exercise) -> Bool = { _ in true }) -> [Exercise] {
         var descriptor = FetchDescriptor<Workout>(predicate: #Predicate { $0.endedAt != nil })
         descriptor.sortBy = [SortDescriptor(\.startedAt, order: .reverse)]
         let finished = (try? context.fetch(descriptor)) ?? []
         var recent: [Exercise] = []
         for exercise in finished.lazy.flatMap(\.exercises) {
-            guard !exercise.isArchived, !workout.contains(exercise), !recent.contains(exercise) else { continue }
+            guard !exercise.isArchived, !workout.contains(exercise), !recent.contains(exercise), isOffered(exercise) else { continue }
             recent.append(exercise)
             if recent.count == 8 { break }
         }

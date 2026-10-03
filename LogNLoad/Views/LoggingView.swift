@@ -55,6 +55,9 @@ struct LoggingView: View {
             .sheet(isPresented: $session.isPickerPresented) {
                 ExercisePickerView(session: session)
             }
+            .sheet(item: $session.swappingEntry) { entry in
+                ExercisePickerView(session: session, swappingEntry: entry)
+            }
             .sheet(isPresented: $isShowingOverview) {
                 OverviewSheet(session: session, onDiscard: discard)
             }
