@@ -806,4 +806,40 @@ struct LoggingSessionTests {
         #expect(!curl.isArchived)
         #expect(finished.sortedEntries.map { $0.exercise?.name } == ["Exercise 0", "Curl"])
     }
+
+    @Test func aMergeThatCombinesTheCurrentEntryKeepsItsSetCurrentInTheKeptEntry() throws {
+        let squat = entry("Squat", true, false)
+        let backSquat = entry("Back Squat", true)
+        try context.save()
+        let session = LoggingSession(workout: workout)
+        let set = session.currentSet
+        #expect(session.currentEntry == squat)
+
+        let kept = try #require(backSquat.exercise)
+        try #require(squat.exercise).merge(into: kept)
+        try context.save()
+        session.exerciseMerged(into: kept)
+
+        #expect(session.currentEntry == backSquat)
+        #expect(session.currentSet == set)
+        session.delete(try #require(set))
+        #expect(session.currentEntry == backSquat)
+    }
+
+    @Test func aMergeThatCombinesADoneCurrentEntryGoesToTheKeptEntrysFirstTarget() throws {
+        let squat = entry("Squat", true)
+        let backSquat = entry("Back Squat", true, false)
+        try context.save()
+        let session = LoggingSession(workout: workout)
+        session.select(squat)
+        #expect(session.currentSet == nil)
+
+        let kept = try #require(backSquat.exercise)
+        try #require(squat.exercise).merge(into: kept)
+        try context.save()
+        session.exerciseMerged(into: kept)
+
+        #expect(session.currentEntry == backSquat)
+        #expect(session.currentSet == backSquat.sortedSets[1])
+    }
 }

@@ -42,6 +42,8 @@ struct MainTabView: View {
                     .navigationTransition(.zoom(sourceID: "logging", in: cover))
             }
         }
+        // A merge in the Library can combine the current Entry away.
+        .environment(session)
         .sensoryFeedback(.success, trigger: finishes)
         .onAppear(perform: openActiveWorkout)
         .onChange(of: scenePhase) { oldPhase, _ in

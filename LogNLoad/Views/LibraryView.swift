@@ -157,12 +157,15 @@ extension View {
 }
 
 /// Saving a new Exercise, or its "Unarchive it", opens the Exercise's page in the form's place; saving an edit
-/// returns to the page. Archive and Delete go back to the stack's root.
+/// returns to the page. Archive and Delete go back to the stack's root; Merge pushes the kept Exercise's page there,
+/// so no page of the merged Exercise stays in the stack.
 private struct ExerciseFormDestination: View {
     let route: ExerciseFormRoute
     @Binding var path: NavigationPath
     @Binding var toast: String?
     @Environment(\.modelContext) private var context
+    /// The Active Workout's, while there is one.
+    @Environment(LoggingSession.self) private var session: LoggingSession?
 
     var body: some View {
         switch route {
@@ -188,6 +191,12 @@ private struct ExerciseFormDestination: View {
                 save(context)
                 path = NavigationPath()
                 toast = message
+            } onMerge: { target in
+                save(context)
+                session?.exerciseMerged(into: target)
+                path = NavigationPath()
+                path.append(target)
+                toast = "Merged into \(target.name ?? "")"
             }
         }
     }

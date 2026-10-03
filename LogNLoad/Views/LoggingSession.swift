@@ -92,6 +92,16 @@ final class LoggingSession {
         add(exercise)
     }
 
+    /// After a merge in the Library that combined the current Entry into `target`'s: `target`'s Entry becomes current,
+    /// keeping the current Set, which moved into it.
+    func exerciseMerged(into target: Exercise) {
+        guard let currentEntry, currentEntry.modelContext == nil,
+              let entry = workout.sortedEntries.first(where: { $0.exercise?.id == target.id }) else { return }
+        let set = currentSet
+        select(entry)
+        if let set, set.entry == entry { currentSet = set }
+    }
+
     /// Makes the Entry current, on its first target Set, or on its first Set while editing.
     func select(_ entry: ExerciseEntry) {
         currentEntry = entry

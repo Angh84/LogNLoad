@@ -114,6 +114,33 @@ extension Exercise {
         modelContext?.delete(self)
     }
 
+    /// Merging into `target`, a Compatible Exercise: every Entry becomes `target`'s, combining where a Workout already
+    /// holds `target`, the Active Workout's included, then this Exercise is hard-deleted.
+    func merge(into target: Exercise) {
+        guard target.isCompatible(with: self) else { return }
+        for entry in entries ?? [] {
+            _ = entry.workout?.swap(entry, to: target)
+        }
+        modelContext?.delete(self)
+    }
+
+    /// The Workouts holding both this Exercise and `other`, where merging combines.
+    func workoutCount(sharedWith other: Exercise) -> Int {
+        Set((entries ?? []).compactMap(\.workout).filter { $0.contains(other) }.map(\.id)).count
+    }
+
+    /// The merge sheet: Compatible Exercises A-Z, those with this one's Top Muscle Group first, and how many other
+    /// non-archived Exercises the filter hides.
+    func mergeTargets(among exercises: [Exercise]) -> (alsoMainly: [Exercise], others: [Exercise], hiddenCount: Int) {
+        let listed = exercises.filter { !$0.isArchived && $0 != self }
+        let compatible = listed
+            .filter { $0.isCompatible(with: self) }
+            .sorted { ($0.name ?? "").localizedStandardCompare($1.name ?? "") == .orderedAscending }
+        let alsoMainly = compatible.filter { $0.topMuscleGroup == topMuscleGroup }
+        let others = compatible.filter { $0.topMuscleGroup != topMuscleGroup }
+        return (alsoMainly, others, listed.count - compatible.count)
+    }
+
     /// A seed, adopted ones included: its `id` has a Seed record.
     var isSeed: Bool {
         let id = id
