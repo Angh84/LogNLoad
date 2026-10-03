@@ -11,7 +11,6 @@ struct MusclesView: View {
         NavigationStack {
             MusclesList(window: TrainingVolume.window(endingOn: now, calendar: .current))
                 .navigationTitle("Muscles")
-                .navigationSubtitle("Last 7 days")
         }
         .onAppear { now = .now }
         .onChange(of: scenePhase) { _, phase in
@@ -27,6 +26,8 @@ struct MusclesView: View {
 /// so completing a Set or editing an Exercise updates it too.
 private struct MusclesList: View {
     @Query private var workouts: [Workout]
+    /// The Muscle Group tapped on the figure, outlined and named in the caption.
+    @State private var selected: MuscleGroup?
 
     init(window: DateInterval) {
         _workouts = Query(filter: Workout.predicate(startedIn: window))
@@ -61,11 +62,16 @@ private struct MusclesList: View {
                 }
             }
         }
+        // The figure's own tap takes precedence, so this clears on a tap anywhere else.
+        .onTapGesture { selected = nil }
+        .navigationSubtitle(selected.map { DisplayFormat.selected($0, volume: volume[$0]) } ?? "Last 7 days")
     }
 
     private func figureColumn(_ figure: MuscleFigure, _ volume: TrainingVolume) -> some View {
         VStack(spacing: 4) {
-            MuscleFigureView(figure: figure, volume: volume)
+            MuscleFigureView(figure: figure, volume: volume, selected: selected) { tapped in
+                selected = tapped == selected ? nil : tapped
+            }
             Text(figure.facing.name)
                 .font(.caption.smallCaps())
                 .foregroundStyle(.secondary)

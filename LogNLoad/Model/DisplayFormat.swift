@@ -12,6 +12,11 @@ enum DisplayFormat {
         volume == 0 ? "0" : volume.formatted(.number.precision(.fractionLength(1)).locale(locale))
     }
 
+    /// The Muscles caption for a selected Muscle Group, always "Sets": "Triceps · 7.5 Sets", "Rotator Cuff · 0 Sets".
+    static func selected(_ muscleGroup: MuscleGroup, volume: Double, locale: Locale = .current) -> String {
+        "\(muscleGroup.name) \u{B7} \(trainingVolume(volume, locale: locale)) Sets"
+    }
+
     /// "62.5 kg x 10", "BW+10 kg x 8", "14 kg x 10/9", with the multiplication sign.
     static func set(_ set: WorkoutSet, of exercise: Exercise, locale: Locale = .current) -> String {
         load(set.weight, of: exercise, locale: locale) + " \u{D7} " + reps(of: set, exercise)
