@@ -1,9 +1,12 @@
 import SwiftData
 import SwiftUI
 
-/// The form for a new Exercise, pushed from the picker's Create row with the search as its name.
+/// The Exercise form: a new Exercise (from the picker's Create row or the Library's "+"), or an edit of one from its
+/// page. With history, Load Type and Unilateral are locked and equipment stays within its weight convention.
 struct ExerciseFormView: View {
     let onSave: (Exercise) -> Void
+    /// The Exercise being edited; empty for a new one.
+    private let exercise: Exercise?
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @State private var draft: Draft
@@ -24,13 +27,30 @@ struct ExerciseFormView: View {
 
     init(name: String, onSave: @escaping (Exercise) -> Void) {
         self.onSave = onSave
+        exercise = nil
         initial = Draft(name: name)
         _draft = State(initialValue: initial)
     }
 
+    init(editing exercise: Exercise, onSave: @escaping (Exercise) -> Void) {
+        self.onSave = onSave
+        self.exercise = exercise
+        initial = Draft(
+            name: exercise.name ?? "",
+            muscleEmphases: exercise.muscleEmphases,
+            equipment: exercise.equipment,
+            loadType: exercise.loadType,
+            isUnilateral: exercise.isUnilateral,
+            note: exercise.note ?? ""
+        )
+        _draft = State(initialValue: initial)
+    }
+
     var body: some View {
-        let conflict = Exercise.named(draft.name, in: context)
+        let named = Exercise.named(draft.name, in: context)
+        let conflict = named == exercise ? nil : named
         let isValid = !isIncomplete && conflict == nil
+        let isLocked = exercise?.hasHistory ?? false
         Form {
             Section {
                 TextField("Name", text: $draft.name)
@@ -50,10 +70,13 @@ struct ExerciseFormView: View {
             Section {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
                     ForEach(Equipment.allCases, id: \.self) { equipment in
+                        let isAllowed = exercise?.allowedEquipment.contains(equipment) ?? true
                         Button { draft.equipment = equipment } label: {
                             Chip(title: equipment.name, isOn: draft.equipment == equipment, horizontalPadding: 6)
                                 .frame(maxWidth: .infinity)
+                                .opacity(isAllowed ? 1 : 0.35)
                         }
+                        .disabled(!isAllowed)
                     }
                 }
                 .buttonStyle(.plain)
@@ -71,6 +94,7 @@ struct ExerciseFormView: View {
                     ForEach(LoadType.allCases, id: \.self) { Text($0.name) }
                 }
                 .pickerStyle(.segmented)
+                .disabled(isLocked)
             } header: {
                 Text("Load Type")
             } footer: {
@@ -82,8 +106,18 @@ struct ExerciseFormView: View {
             }
             Section {
                 Toggle("Unilateral", isOn: $draft.isUnilateral)
+                    .disabled(isLocked)
             } footer: {
                 Text("Left and right reps are logged separately.")
+            }
+            if isLocked, let exercise {
+                Section {
+                    Text("It's in \(DisplayFormat.count(exercise.workoutCount, "Workout")), so Load Type and Unilateral are locked. "
+                        + DisplayFormat.equipmentLimit(for: exercise)
+                        + " Changing them would change what the logged Sets mean. If one is wrong, create a new Exercise and archive this one.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
             Section {
                 TextField("Note", text: $draft.note, axis: .vertical)
@@ -96,7 +130,7 @@ struct ExerciseFormView: View {
                 }
             }
         }
-        .navigationTitle("New Exercise")
+        .navigationTitle(exercise == nil ? "New Exercise" : "Edit Exercise")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden()
         .toolbar {
@@ -191,7 +225,15 @@ struct ExerciseFormView: View {
     }
 
     private func save() {
-        guard let name = trimmed(draft.name), let equipment = draft.equipment, Exercise.named(name, in: context) == nil else { return }
+        guard let name = trimmed(draft.name), let equipment = draft.equipment else { return }
+        let conflict = Exercise.named(name, in: context)
+        if let exercise {
+            guard conflict == nil || conflict == exercise else { return }
+            exercise.update(name: name, equipment: equipment, loadType: draft.loadType, isUnilateral: draft.isUnilateral, note: draft.note, muscleEmphases: draft.muscleEmphases)
+            onSave(exercise)
+            return
+        }
+        guard conflict == nil else { return }
         onSave(Exercise(
             name: name,
             equipment: equipment,

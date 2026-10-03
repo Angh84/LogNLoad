@@ -74,11 +74,36 @@ extension Exercise {
         return recent
     }
 
+    /// With history, equipment changes only within its weight convention; without, to any of the eight.
+    var allowedEquipment: [Equipment] {
+        guard hasHistory, let weightConvention else { return Equipment.allCases }
+        return Equipment.allCases.filter { $0.weightConvention == weightConvention }
+    }
+
+    /// The Library list: non-archived Exercises under their Body Area placement, in Body Area order, A-Z, with
+    /// empty Body Areas left out.
+    static func librarySections(_ exercises: [Exercise]) -> [(area: BodyArea, exercises: [Exercise])] {
+        let listed = exercises.filter { !$0.isArchived }
+        return BodyArea.allCases.compactMap { area in
+            let inArea = listed
+                .filter { $0.bodyArea == area }
+                .sorted { ($0.name ?? "").localizedStandardCompare($1.name ?? "") == .orderedAscending }
+            return inArea.isEmpty ? nil : (area, inArea)
+        }
+    }
+
     /// Entries in any Workout, the Active Workout included.
     var hasHistory: Bool { !(entries ?? []).isEmpty }
 
     var workoutCount: Int {
         Set((entries ?? []).compactMap { $0.workout?.id }).count
+    }
+
+    /// Its Entries in finished Workouts, newest `startedAt` first: the Exercise page's history.
+    var finishedHistory: [ExerciseEntry] {
+        (entries ?? [])
+            .filter { $0.workout?.isActive == false }
+            .sorted { ($0.workout?.startedAt ?? .distantPast) > ($1.workout?.startedAt ?? .distantPast) }
     }
 
     /// The Sets from the finished Workout with the latest start that contains this Exercise.
@@ -87,6 +112,19 @@ extension Exercise {
             .filter { $0.workout?.isActive == false }
             .max { ($0.workout?.startedAt ?? .distantPast) < ($1.workout?.startedAt ?? .distantPast) }?
             .sortedSets
+    }
+
+    /// Saving the edit form. With history, Load Type and Unilateral stay as they are and equipment changes only
+    /// within its weight convention, whatever the form held when the Exercise gained its history.
+    func update(name: String, equipment: Equipment, loadType: LoadType, isUnilateral: Bool, note: String, muscleEmphases: [MuscleEmphasis]) {
+        self.name = trimmed(name)
+        if allowedEquipment.contains(equipment) { self.equipment = equipment }
+        if !hasHistory {
+            self.loadType = loadType
+            self.isUnilateral = isUnilateral
+        }
+        self.note = trimmed(note)
+        self.muscleEmphases = muscleEmphases
     }
 
     /// Highest weight first, ties in stored order.

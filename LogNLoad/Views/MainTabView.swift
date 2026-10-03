@@ -22,9 +22,7 @@ struct MainTabView: View {
                 HistoryView(justFinished: justFinished)
             }
             Tab("Exercises", systemImage: "dumbbell", value: .exercises) {
-                NavigationStack {
-                    Color.clear.navigationTitle("Exercises")
-                }
+                LibraryView()
             }
         }
         .tabViewBottomAccessory {

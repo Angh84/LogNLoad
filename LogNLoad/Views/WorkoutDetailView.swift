@@ -10,11 +10,12 @@ struct WorkoutDetailView: View {
     @State private var workoutToDelete: Workout?
     @Query(filter: #Predicate<Workout> { $0.endedAt == nil }) private var activeWorkouts: [Workout]
     @State private var editSession: LoggingSession?
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        // Deleted while the detail is still on its way out.
+        // Deleted here, deeper in the stack or in the other tab: the detail closes itself when shown.
         if workout.modelContext == nil {
-            Color.clear
+            Color.clear.onAppear { dismiss() }
         } else {
             content
         }
@@ -134,6 +135,8 @@ struct WorkoutDetailView: View {
                 Label(note, systemImage: "note.text")
                     .font(.subheadline)
             }
+            NavigationLink("Exercise history", value: exercise)
+                .font(.subheadline)
         }
     }
 

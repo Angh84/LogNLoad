@@ -299,4 +299,72 @@ struct ExerciseTests {
 
         #expect(Exercise.recent(for: active, in: context).isEmpty)
     }
+
+    // MARK: Library
+
+    @Test func withoutHistoryAnyEquipmentIsAllowed() {
+        #expect(exercise("Row", .cable).allowedEquipment == Equipment.allCases)
+    }
+
+    @Test func historyKeepsEquipmentWithinItsWeightConvention() {
+        let curl = exercise("Curl", .dumbbell)
+        let row = exercise("Row", .cable)
+        let workout = workout(day(28), endedAt: day(28, 18))
+        log(curl, in: workout, [(14, 10)])
+        log(row, in: workout, [(50, 10)])
+
+        #expect(curl.allowedEquipment == [.dumbbell, .kettlebell])
+        #expect(row.allowedEquipment == [.barbell, .machine, .cable, .band, .bodyweight, .other])
+    }
+
+    @Test func theLibraryListsExercisesByBodyAreaPlacementAToZWithoutArchivedOnes() {
+        let squat = exercise("Squat", emphases: [MuscleEmphasis(muscleGroup: .quads, weight: 1)])
+        let deadlift = exercise("Deadlift", emphases: [MuscleEmphasis(muscleGroup: .glutes, weight: 1), MuscleEmphasis(muscleGroup: .lowerBack, weight: 1)])
+        let bench = exercise("Bench Press", emphases: [MuscleEmphasis(muscleGroup: .lowerChest, weight: 1), MuscleEmphasis(muscleGroup: .triceps, weight: 0.5)])
+        let fly = exercise("Cable Fly", emphases: [MuscleEmphasis(muscleGroup: .upperChest, weight: 1)])
+        let archived = exercise("Old Press", isArchived: true, emphases: [MuscleEmphasis(muscleGroup: .lowerChest, weight: 1)])
+
+        let sections = Exercise.librarySections([squat, deadlift, archived, bench, fly])
+
+        #expect(sections.map(\.area) == [.chest, .legs])
+        #expect(sections.map(\.exercises) == [[bench, fly], [deadlift, squat]])
+    }
+
+    @Test func finishedHistoryIsNewestFirstWithoutTheActiveWorkout() {
+        let squat = exercise("Squat")
+        let older = workout(day(20), endedAt: day(20, 18))
+        let newer = workout(day(27), endedAt: day(27, 18))
+        let active = workout(day(30), endedAt: nil)
+        log(squat, in: older, [(60, 10)])
+        log(squat, in: newer, [(62.5, 10)])
+        log(squat, in: active, [(65, 10)])
+
+        #expect(squat.finishedHistory.map(\.workout) == [newer, older])
+    }
+
+    @Test func savingAnEditOfAnExerciseWithHistoryKeepsItsLockedFields() {
+        let curl = exercise("Curl", .dumbbell)
+        log(curl, in: workout(day(28), endedAt: day(28, 18)), [(14, 10)])
+
+        curl.update(name: "Hammer Curl", equipment: .barbell, loadType: .assisted, isUnilateral: true, note: " Neutral grip ", muscleEmphases: [MuscleEmphasis(muscleGroup: .brachialis, weight: 1)])
+        #expect(curl.name == "Hammer Curl")
+        #expect(curl.equipment == .dumbbell)
+        #expect(curl.loadType == .loaded)
+        #expect(!curl.isUnilateral)
+        #expect(curl.note == "Neutral grip")
+        #expect(curl.muscleEmphases.map(\.muscleGroup) == [.brachialis])
+
+        curl.update(name: "Hammer Curl", equipment: .kettlebell, loadType: .loaded, isUnilateral: false, note: "", muscleEmphases: curl.muscleEmphases)
+        #expect(curl.equipment == .kettlebell)
+    }
+
+    @Test func savingAnEditOfAnExerciseWithoutHistoryChangesEveryField() {
+        let row = exercise("Row", .cable)
+
+        row.update(name: "Row", equipment: .dumbbell, loadType: .assisted, isUnilateral: true, note: "", muscleEmphases: row.muscleEmphases)
+
+        #expect(row.equipment == .dumbbell)
+        #expect(row.loadType == .assisted)
+        #expect(row.isUnilateral)
+    }
 }
